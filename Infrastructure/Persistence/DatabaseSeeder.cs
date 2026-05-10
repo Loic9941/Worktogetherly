@@ -326,6 +326,7 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
         var david    = users[3];
         var emma     = users[4];
         var francois = users[5];
+        var gaelle   = users[6];
         var wsThomas = workspaces[10]; // La Terrasse Beaumont
 
         var today = DateTime.UtcNow.Date;
@@ -359,7 +360,7 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
             (pastSlots[2].slot,  david.Id,   new TimeOnly(8, 0),   5, "Parfait pour une journée de focus. Connexion impeccable."),
             (pastSlots[3].slot,  emma.Id,    new TimeOnly(13, 30), 4, "Très bonne expérience, hôte réactif. Reviendrai."),
             (pastSlots[4].slot,  francois.Id,new TimeOnly(9, 0),   3, "Bien mais un peu bruyant l'après-midi côté rue."),
-            (pastSlots[5].slot,  celine.Id,  new TimeOnly(14, 0),  5, "Excellent rapport qualité-prix, espace propre et moderne."),
+            (pastSlots[5].slot,  gaelle.Id,  new TimeOnly(14, 0),  5, "Excellent rapport qualité-prix, espace propre et moderne."),
         };
 
         var pastBookingsOnThomas = new List<Booking>();
