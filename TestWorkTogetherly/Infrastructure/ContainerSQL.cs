@@ -1,11 +1,10 @@
-using DotNet.Testcontainers.Builders;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using Testcontainers.PostgreSql;
 using WorkTogetherly.Infrastructure.Persistence;
 
-namespace TestProjectBackend
+namespace TestWorkTogetherly.Infrastructure
 {
     public class ContainerSQL : IAsyncLifetime
     {

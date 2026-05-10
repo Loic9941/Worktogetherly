@@ -2,7 +2,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkTogetherly.Application.Reviews.CreateReview;
-using WorkTogetherly.Application.Reviews.GetWorkspaceReviews;
 using WorkTogetherly.Application.Reviews.GetReviewByBooking;
 using WorkTogetherly.Application.Reviews.UpdateReview;
 using WorkTogetherly.Presentation.Models.Review;

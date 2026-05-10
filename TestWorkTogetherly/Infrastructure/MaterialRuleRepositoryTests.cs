@@ -1,5 +1,4 @@
 using FluentAssertions;
-using TestProjectBackend;
 using WorkTogetherly.Infrastructure.Repositories;
 
 namespace TestWorkTogetherly.Infrastructure;
