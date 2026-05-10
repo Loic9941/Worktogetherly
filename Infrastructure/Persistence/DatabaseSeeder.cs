@@ -465,5 +465,16 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
         }
 
         await context.SaveChangesAsync();
+
+        // ── 8. Photo de profil de Thomas (copie de ws0.jpg comme avatar)
+        var seedPhoto = Path.Combine(AppContext.BaseDirectory, "wwwroot", "seed", "workspaces", "ws0.jpg");
+        if (File.Exists(seedPhoto))
+        {
+            var destDir = Path.Combine(AppContext.BaseDirectory, "wwwroot", "uploads", "users", thomas.Id.ToString());
+            Directory.CreateDirectory(destDir);
+            File.Copy(seedPhoto, Path.Combine(destDir, "photo.jpg"), overwrite: true);
+            thomas.ReplacePhoto($"/uploads/users/{thomas.Id}/photo.jpg");
+            await context.SaveChangesAsync();
+        }
     }
 }
