@@ -1,0 +1,176 @@
+@page "/search"
+@layout PrivateMainLayout
+@inject WorkspaceService WorkspaceService
+@inject AmenityService AmenityService
+@inject PageTitleService PageTitleService
+@inject IBrowserViewportService BrowserViewportService
+@implements IBrowserViewportObserver
+@implements IAsyncDisposable
+
+<PageTitle>Recherche</PageTitle>
+
+@if (_isDesktop)
+{
+<div class="search-desktop-wrapper">
+    <div class="search-desktop-header">
+        <MudText Typo="Typo.h5" Class="mb-3">Recherche</MudText>
+        <SearchBar OnSearch="HandleSearchAsync"
+                   AllMaterials="_allMaterials"
+                   AllRules="_allRules"
+                   OnAmenityFilterChanged="HandleAmenityFilterChanged" />
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+    </div>
+
+    <MudPaper Elevation="2" Class="search-desktop-layout" Style="border-radius: 12px; overflow: hidden; margin: 12px 16px 16px;">
+        <div class="search-desktop-sidebar">
+            @if (_hasSearched)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="px-2 pt-2 pb-1">
+                    @_filteredResults.Count résultat(s) trouvé(s)
+                </MudText>
+                <div class="search-desktop-list">
+                    <SearchListTab Workspaces="_filteredResults"
+                                   SingleColumn="true"
+                                   SearchDate="@(_currentRequest?.Date ?? DateOnly.FromDateTime(DateTime.Today))"
+                                   OnWorkspaceFocused="@(w => _focusedWorkspace = w)" />
+                </div>
+            }
+        </div>
+
+        <div class="search-desktop-map">
+            @if (_hasSearched)
+            {
+                <SearchMapTab Workspaces="_filteredResults"
+                              SearchRequest="_currentRequest"
+                              SearchDate="@(_currentRequest?.Date ?? DateOnly.FromDateTime(DateTime.Today))"
+                              MapHeight="100%"
+                              OnMapMoved="HandleSearchAsync"
+                              FocusedWorkspace="_focusedWorkspace" />
+            }
+            else
+            {
+                <div class="search-map-placeholder">
+                    <MudIcon Icon="@Icons.Material.Filled.Map" Style="font-size:4rem; opacity:.2;" />
+                    <MudText Typo="Typo.body1" Style="opacity:.4;">Lancez une recherche pour afficher la carte</MudText>
+                </div>
+            }
+        </div>
+    </MudPaper>
+</div>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+        <MudText Typo="Typo.h5" Class="mb-4 desktop-only-title">Recherche</MudText>
+
+        <SearchBar OnSearch="HandleSearchAsync"
+                   AllMaterials="_allMaterials"
+                   AllRules="_allRules"
+                   OnAmenityFilterChanged="HandleAmenityFilterChanged" />
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+        }
+
+        @if (_hasSearched)
+        {
+            <MudPaper Elevation="2" Style="border-radius: 12px; overflow: hidden;">
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="px-4 pt-3 pb-1">
+                    @_filteredResults.Count résultat(s) trouvé(s)
+                </MudText>
+                <MudTabs Elevation="0" Rounded="false" ApplyEffectsToContainer="true">
+                    <MudTabPanel Text="Carte" Icon="@Icons.Material.Filled.Map">
+                        <SearchMapTab Workspaces="_filteredResults" SearchRequest="_currentRequest"
+                                      SearchDate="@(_currentRequest?.Date ?? DateOnly.FromDateTime(DateTime.Today))"
+                                      OnMapMoved="HandleSearchAsync" />
+                    </MudTabPanel>
+                    <MudTabPanel Text="Liste" Icon="@Icons.Material.Filled.ViewList">
+                        <SearchListTab Workspaces="_filteredResults"
+                                       SearchDate="@(_currentRequest?.Date ?? DateOnly.FromDateTime(DateTime.Today))" />
+                    </MudTabPanel>
+                </MudTabs>
+            </MudPaper>
+        }
+    </MudContainer>
+}
+
+@code {
+    private List<WorkspaceSearchResultDto> _results = [];
+    private List<WorkspaceSearchResultDto> _filteredResults = [];
+    private List<MaterialDto> _allMaterials = [];
+    private List<RuleDto> _allRules = [];
+    private AmenityFilter _amenityFilter = new([], []);
+    private WorkspaceSearchRequest? _currentRequest;
+    private WorkspaceSearchResultDto? _focusedWorkspace;
+    private bool _loading;
+    private bool _hasSearched;
+    private bool _isDesktop;
+
+    Guid IBrowserViewportObserver.Id { get; } = Guid.NewGuid();
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.SetTitle("Recherche");
+        var materialsTask = AmenityService.GetAllMaterialsAsync();
+        var rulesTask = AmenityService.GetAllRulesAsync();
+        await Task.WhenAll(materialsTask, rulesTask);
+        _allMaterials = materialsTask.Result;
+        _allRules = rulesTask.Result;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await BrowserViewportService.SubscribeAsync(this, fireImmediately: true);
+        }
+    }
+
+    async Task IBrowserViewportObserver.NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs args)
+    {
+        _isDesktop = args.Breakpoint >= Breakpoint.Md;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleSearchAsync(WorkspaceSearchRequest request)
+    {
+        _loading = true;
+        _currentRequest = request;
+        _hasSearched = true;
+
+        _results = await WorkspaceService.SearchWorkspacesAsync(request);
+        ApplyAmenityFilter();
+
+        _loading = false;
+    }
+
+    private void HandleAmenityFilterChanged(AmenityFilter filter)
+    {
+        _amenityFilter = filter;
+        ApplyAmenityFilter();
+    }
+
+    private void ApplyAmenityFilter()
+    {
+        if (_amenityFilter.MaterialIds.Count == 0 && _amenityFilter.RuleIds.Count == 0)
+        {
+            _filteredResults = _results;
+            return;
+        }
+
+        _filteredResults = _results
+            .Where(w =>
+                _amenityFilter.MaterialIds.All(id => w.Materials.Any(m => m.MaterialId == id)) &&
+                _amenityFilter.RuleIds.All(id => w.Rules.Any(r => r.RuleId == id)))
+            .ToList();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await BrowserViewportService.UnsubscribeAsync(this);
+    }
+}

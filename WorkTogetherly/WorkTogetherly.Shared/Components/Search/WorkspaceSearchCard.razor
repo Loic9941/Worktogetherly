@@ -1,0 +1,64 @@
+<MudCard Class="cursor-pointer workspace-search-card" @onclick="OnClick" Elevation="2" Style="height:100%; transition: box-shadow 0.2s, transform 0.2s;">
+    @if (!string.IsNullOrEmpty(Workspace.PhotoPath))
+    {
+        <MudCardMedia Image="@WorkspaceService.GetPhotoUrl(Workspace.PhotoPath)" Height="160" />
+    }
+    else
+    {
+        <div style="height:160px; background: var(--mud-palette-background-grey); display:flex; align-items:center; justify-content:center;">
+            <MudIcon Icon="@Icons.Material.Filled.Business" Style="font-size:3rem; opacity:0.3;" />
+        </div>
+    }
+    <MudCardContent Class="pa-4">
+        <MudText Typo="Typo.h6" Class="mb-1">@Workspace.Name</MudText>
+<MudText Typo="Typo.body2" Class="mb-3" Style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">@Workspace.Description</MudText>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Color="Color.Default" />
+                <MudText Typo="Typo.caption">@Workspace.Capacity place(s)</MudText>
+            </MudStack>
+            @if (Workspace.DistanceKm.HasValue)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                    @(Workspace.DistanceKm.Value < 1
+                        ? $"{(int)(Workspace.DistanceKm.Value * 1000)} m"
+                        : $"{Workspace.DistanceKm.Value:F1} km")
+                </MudChip>
+            }
+        </MudStack>
+        @{
+            var allItems = Workspace.Materials.Select(m => m.Name)
+                .Concat(Workspace.Rules.Select(r => r.Name))
+                .ToList();
+        }
+        @if (allItems.Count > 0)
+        {
+            <MudChipSet T="string" Class="mt-3">
+                @foreach (var name in allItems.Take(3))
+                {
+                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">@name</MudChip>
+                }
+                @if (allItems.Count > 3)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">+@(allItems.Count - 3)</MudChip>
+                }
+            </MudChipSet>
+        }
+    </MudCardContent>
+</MudCard>
+
+<style>
+    .workspace-search-card:hover {
+        box-shadow: var(--mud-elevation-8) !important;
+        transform: translateY(-2px);
+    }
+</style>
+
+@inject WorkspaceService WorkspaceService
+
+@code {
+    [Parameter] public WorkspaceSearchResultDto Workspace { get; set; } = default!;
+    [Parameter] public EventCallback<int> OnSelected { get; set; }
+
+    private async Task OnClick() => await OnSelected.InvokeAsync(Workspace.Id);
+}

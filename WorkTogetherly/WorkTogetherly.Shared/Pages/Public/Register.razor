@@ -1,0 +1,122 @@
+@page "/register"
+@using MudBlazor
+@using WorkTogetherly.Shared.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject IFormFactor FormFactor
+
+
+<PageTitle>Inscription</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall">
+    <MudCard Elevation="10" Class="mt-2">
+        <MudCardContent>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" Class="d-flex justify-start">
+                    <img src="_content/WorkTogetherly.Shared/images/full_logo.png" alt="WorkTogetherly" style="max-width: 260px; width: 100%;" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h4">Inscription</MudText>
+                    <MudText>Le télétravail, ensemble</MudText>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.FirstName"
+                                  Label="Prénom" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.LastName"
+                                  Label="Nom de famille" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Email"
+                                  Label="Email" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Password"
+                                  Label="Mot de passe" Variant="Variant.Outlined"
+                                  InputType="InputType.Password" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_confirmPassword"
+                                  Label="Confirmer le mot de passe" Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Error="@_passwordMismatch"
+                                  ErrorText="Les mots de passe ne correspondent pas" />
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+        <MudCardActions Class="px-4 mb-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Tertiary" FullWidth
+                       OnClick="SubmitAsync" Disabled="_isSubmitting">
+                @(_isSubmitting ? "Création en cours..." : "Confirmer")
+            </MudButton>
+        </MudCardActions>
+        <MudCardActions Class="px-4" >
+            <MudText>Déjà un compte ? </MudText>
+        </MudCardActions>
+        <MudCardActions Class="px-4 mb-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Tertiary" FullWidth
+                       OnClick="@(() => Navigation.NavigateTo("/login"))">
+                Se connecter
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <MudText Color="Color.Error" Class="mt-4">@_message</MudText>
+    }
+    <!--App running on <em>@factor</em> using <em>@platform</em>.-->
+</MudContainer>
+
+@code {
+    private RegisterModel _model = new();
+    private string? _message;
+    private bool _isSubmitting;
+    private string _confirmPassword = string.Empty;
+    private bool _passwordMismatch => !string.IsNullOrEmpty(_confirmPassword) && _model.Password != _confirmPassword;
+
+    private async Task SubmitAsync()
+    {
+        if (_isSubmitting) return;
+        if (_model.Password != _confirmPassword)
+        {
+            _message = "Les mots de passe ne correspondent pas.";
+            return;
+        }
+        _isSubmitting = true;
+        _message = null;
+
+        try
+        {
+            var success = await AuthService.RegisterAsync(
+                _model.Email, _model.Password,
+                _model.FirstName ?? string.Empty,
+                _model.LastName ?? string.Empty);
+
+            if (success)
+                Navigation.NavigateTo("/login");
+            else
+                _message = "Erreur lors de la création du compte.";
+        }
+        catch (Exception ex)
+        {
+            _message = $"Erreur : {ex.Message}";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private string factor => FormFactor.GetFormFactor();
+    private string platform => FormFactor.GetPlatform();
+
+    private class RegisterModel
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,153 @@
+@page "/my-workspace"
+@using MudBlazor
+@using WorkTogetherly.Shared.Components.Workspace
+@using WorkTogetherly.Shared.Components.Slot
+@using WorkTogetherly.Shared.Models
+@using WorkTogetherly.Shared.Services
+@using WorkTogetherly.Shared.Components
+@layout PrivateMainLayout
+@inject PageTitleService PageTitleService
+@inject WorkspaceService WorkspaceService
+@inject AmenityService AmenityService
+@inject SlotService SlotService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Mon espace</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <MudText Typo="Typo.h5" Class="mb-4 desktop-only-title">Mon espace</MudText>
+</MudContainer>
+
+@if (_loading)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 d-flex justify-center">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+    </MudContainer>
+}
+else if (_workspace is null)
+{
+    <WorkspaceEmptyState OnCreate="OpenDialogAsync" />
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <WorkspaceInfoCard Workspace="_workspace"
+                                   OnEdit="OpenDialogAsync"
+                                   OnWorkspaceUpdated="@(updated => _workspace = updated)" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <WorkspaceSlotList Slots="_slots"
+                                   OnAddSlot="@(() => OpenSlotDialogAsync())"
+                                   OnEditSlot="@(slot => OpenSlotDialogAsync(slot))"
+                                   OnCancelSlot="@(slot => CancelSlotAsync(slot))" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <WorkspaceReviewList WorkspaceId="_workspace.Id" />
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+}
+
+@code {
+    private WorkspaceDto? _workspace;
+    private List<MaterialDto> _allMaterials = [];
+    private List<RuleDto> _allRules = [];
+    private List<SlotDto> _slots = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.SetTitle("Mon espace");
+        var workspaceTask = WorkspaceService.GetMyWorkspaceAsync();
+        var materialsTask = AmenityService.GetAllMaterialsAsync();
+        var rulesTask = AmenityService.GetAllRulesAsync();
+
+        await Task.WhenAll(workspaceTask, materialsTask, rulesTask);
+
+        _workspace = workspaceTask.Result;
+        _allMaterials = materialsTask.Result;
+        _allRules = rulesTask.Result;
+
+        if (_workspace is not null)
+            _slots = await SlotService.GetSlotsByWorkspaceAsync(_workspace.Id);
+
+        _loading = false;
+    }
+
+    private async Task OpenDialogAsync()
+    {
+        var title = _workspace is null ? "Créer mon espace" : "Modifier mon espace";
+        var parameters = new DialogParameters<WorkspaceFormDialog>
+        {
+            { x => x.Workspace, _workspace },
+            { x => x.AllMaterials, _allMaterials },
+            { x => x.AllRules, _allRules }
+        };
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<WorkspaceFormDialog>(title, parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false } && result.Data is WorkspaceDto updated)
+            _workspace = updated;
+    }
+
+    private async Task OpenSlotDialogAsync(SlotDto? slot = null)
+    {
+        var title = slot is null ? "Ajouter un créneau" : "Modifier le créneau";
+        var parameters = new DialogParameters<SlotFormDialog>
+        {
+            { x => x.Slot, slot },
+            { x => x.WorkspaceId, _workspace!.Id },
+            { x => x.WorkspaceDefaultCapacity, _workspace!.Capacity }
+        };
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<SlotFormDialog>(title, parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false } && result.Data is SlotDto updated)
+        {
+            var index = _slots.FindIndex(s => s.Id == updated.Id);
+            if (index >= 0)
+                _slots[index] = updated;
+            else
+                _slots.Add(updated);
+        }
+    }
+
+    private async Task CancelSlotAsync(SlotDto slot)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Annuler le créneau",
+            $"Confirmer l'annulation du créneau du {slot.StartDateTime:dd/MM/yyyy} ({slot.StartDateTime:HH:mm} – {slot.EndDateTime:HH:mm}) ?",
+            yesText: "Annuler le créneau",
+            cancelText: "Retour");
+
+        if (confirmed != true)
+            return;
+
+        var error = await SlotService.CancelSlotAsync(_workspace!.Id, slot.Id);
+        if (error is not null)
+        {
+            Snackbar.Add(error, Severity.Error);
+            return;
+        }
+
+        _slots.RemoveAll(s => s.Id == slot.Id);
+        Snackbar.Add("Créneau annulé", Severity.Success);
+    }
+}

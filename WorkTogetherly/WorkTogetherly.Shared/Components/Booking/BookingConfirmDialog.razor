@@ -1,0 +1,124 @@
+@inject BookingService BookingService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Confirmer la réservation</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.body1">@WorkspaceName</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @SlotStart.ToString("dddd dd MMMM yyyy") — @SlotStart.ToString("HH:mm") à @SlotEnd.ToString("HH:mm")
+            </MudText>
+            <MudTimePicker @bind-Time="_arrivalTimeSpan"
+                           Label="Heure d'arrivée *"
+                           Variant="Variant.Outlined"
+                           AmPm="false"
+                           TimeEditMode="TimeEditMode.Normal"
+                           Editable="true"
+                           OpenTo="OpenTo.Hours"
+                           AutoClose="true" />
+            @if (_arrivalTimeError is not null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Error">@_arrivalTimeError</MudText>
+            }
+
+            @if (MaterialAvailabilities.Count > 0)
+            {
+                <MudDivider />
+                <MudText Typo="Typo.subtitle2">Équipements souhaités</MudText>
+                @foreach (var material in MaterialAvailabilities)
+                {
+                    var m = material;
+                    var disabled = m.Available == 0;
+                    <MudCheckBox @bind-Value="@_materialChecked[m.MaterialId]"
+                                 Disabled="@disabled"
+                                 Color="Color.Primary"
+                                 Dense="true">
+                        <ChildContent>
+                            <MudText Typo="Typo.body2" Color="@(disabled ? Color.Error : Color.Default)">
+                                @m.Name
+                                <MudText Inline="true" Typo="Typo.caption" Color="Color.Secondary">
+                                    (disponible : @m.Available/@m.TotalQuantity)
+                                </MudText>
+                            </MudText>
+                        </ChildContent>
+                    </MudCheckBox>
+                }
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_saving">Annuler</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="ConfirmAsync"
+                   Disabled="_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Confirmer
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter, EditorRequired] public int SlotId { get; set; }
+    [Parameter, EditorRequired] public DateTime SlotStart { get; set; }
+    [Parameter, EditorRequired] public DateTime SlotEnd { get; set; }
+    [Parameter, EditorRequired] public string WorkspaceName { get; set; } = string.Empty;
+    [Parameter] public List<SlotMaterialAvailabilityDto> MaterialAvailabilities { get; set; } = [];
+
+    private TimeSpan? _arrivalTimeSpan;
+    private string? _arrivalTimeError;
+    private bool _saving;
+    private Dictionary<int, bool> _materialChecked = [];
+
+    protected override void OnInitialized()
+    {
+        _materialChecked = MaterialAvailabilities.ToDictionary(m => m.MaterialId, _ => false);
+    }
+
+    private async Task ConfirmAsync()
+    {
+        _arrivalTimeError = null;
+
+        if (_arrivalTimeSpan is null)
+        {
+            _arrivalTimeError = "Veuillez indiquer votre heure d'arrivée.";
+            return;
+        }
+
+        var arrivalTime = TimeOnly.FromTimeSpan(_arrivalTimeSpan.Value);
+        var slotStartTime = TimeOnly.FromDateTime(SlotStart);
+        var slotEndTime = TimeOnly.FromDateTime(SlotEnd);
+
+        if (arrivalTime < slotStartTime || arrivalTime > slotEndTime)
+        {
+            _arrivalTimeError = $"L'heure d'arrivée doit être entre {slotStartTime:HH:mm} et {slotEndTime:HH:mm}.";
+            return;
+        }
+
+        var selectedMaterialIds = _materialChecked
+            .Where(kv => kv.Value)
+            .Select(kv => kv.Key)
+            .ToList();
+
+        _saving = true;
+        var (success, error) = await BookingService.CreateBookingAsync(SlotId, arrivalTime, selectedMaterialIds);
+        _saving = false;
+
+        if (!success)
+        {
+            Snackbar.Add(error ?? "Une erreur est survenue", Severity.Error);
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

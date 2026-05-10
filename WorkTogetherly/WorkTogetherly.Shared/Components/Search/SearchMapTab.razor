@@ -1,0 +1,40 @@
+@inject IDialogService DialogService
+
+@if (SearchRequest is not null)
+{
+    <LeafletMap Workspaces="Workspaces"
+                CenterLatitude="SearchRequest.Latitude"
+                CenterLongitude="SearchRequest.Longitude"
+                SearchDate="SearchDate"
+                Height="@MapHeight"
+                OnWorkspaceSelected="OpenDetailAsync"
+                OnMapMoved="OnMapMoved"
+                FocusedWorkspace="FocusedWorkspace" />
+}
+else
+{
+    <MudAlert Severity="Severity.Info">Lancez une recherche pour afficher la carte.</MudAlert>
+}
+
+@code {
+    [Parameter] public List<WorkspaceSearchResultDto> Workspaces { get; set; } = [];
+    [Parameter] public WorkspaceSearchRequest? SearchRequest { get; set; }
+    [Parameter] public DateOnly SearchDate { get; set; }
+    [Parameter] public EventCallback<WorkspaceSearchRequest> OnMapMoved { get; set; }
+    [Parameter] public string MapHeight { get; set; } = "500px";
+    [Parameter] public WorkspaceSearchResultDto? FocusedWorkspace { get; set; }
+
+    private async Task OpenDetailAsync(int workspaceId)
+    {
+        var workspace = Workspaces.FirstOrDefault(w => w.Id == workspaceId);
+        var parameters = new DialogParameters<WorkspaceDetailDialog>
+        {
+            { x => x.WorkspaceId, workspaceId },
+            { x => x.WorkspaceName, workspace?.Name ?? string.Empty },
+            { x => x.SearchDate, SearchDate },
+            { x => x.DistanceKm, workspace?.DistanceKm }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        await DialogService.ShowAsync<WorkspaceDetailDialog>(workspace?.Name ?? "Espace de travail", parameters, options);
+    }
+}

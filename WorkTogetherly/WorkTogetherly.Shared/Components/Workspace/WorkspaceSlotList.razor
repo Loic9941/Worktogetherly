@@ -1,0 +1,107 @@
+@using WorkTogetherly.Shared.Models
+@using System.Globalization
+
+<MudCard Elevation="3">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudGrid>
+                <MudItem xs="12" sm="8" Class="d-flex align-center">
+                    <MudText Typo="Typo.h6">Mes prochains créneaux</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="d-flex align-center justify-sm-end">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="@(() => OnAddSlot.InvokeAsync())">
+                        Ajouter
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (Slots.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Text">
+                Aucun créneau à venir. Ajoutez votre premier créneau !
+            </MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                @foreach (var slot in Slots)
+                {
+                    var hasStarted = slot.StartDateTime <= DateTime.UtcNow;
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="1" Class="pa-4">
+                            <MudGrid Spacing="1">
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.subtitle2">
+                                        @slot.StartDateTime.ToString("dddd d MMMM yyyy", new CultureInfo("fr-FR"))
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.body2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Class="mr-1" />
+                                        @slot.StartDateTime.ToString("HH:mm") – @slot.EndDateTime.ToString("HH:mm")
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.body2" Color="@(slot.AvailablePlaces > 0 ? Color.Success : Color.Error)">
+                                        @slot.AvailablePlaces place(s) disponible(s) / @slot.Capacity
+                                    </MudText>
+                                </MudItem>
+                                @if (slot.Attendees.Count > 0)
+                                {
+                                    <MudItem xs="12">
+                                        <MudChipSet T="string" Class="mt-1">
+                                            @foreach (var attendee in slot.Attendees)
+                                            {
+                                                <MudChip T="string"
+                                                         Color="Color.Secondary"
+                                                         Size="Size.Small"
+                                                         Variant="Variant.Outlined">
+                                                    @attendee.FirstName @attendee.LastInitial.
+                                                </MudChip>
+                                            }
+                                        </MudChipSet>
+                                    </MudItem>
+                                }
+                                <MudItem xs="12" Class="d-flex justify-end gap-1 mt-2">
+                                    <MudTooltip Text="@(hasStarted ? "Le créneau a déjà commencé" : "")">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   StartIcon="@Icons.Material.Filled.Edit"
+                                                   Disabled="@hasStarted"
+                                                   OnClick="@(() => OnEditSlot.InvokeAsync(slot))">
+                                            Modifier
+                                        </MudButton>
+                                    </MudTooltip>
+                                    <MudTooltip Text="@(hasStarted ? "Le créneau a déjà commencé" : "")">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   StartIcon="@Icons.Material.Filled.Cancel"
+                                                   Disabled="@hasStarted"
+                                                   OnClick="@(() => OnCancelSlot.InvokeAsync(slot))">
+                                            Annuler
+                                        </MudButton>
+                                    </MudTooltip>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public List<SlotDto> Slots { get; set; } = default!;
+    [Parameter, EditorRequired] public EventCallback OnAddSlot { get; set; }
+    [Parameter, EditorRequired] public EventCallback<SlotDto> OnEditSlot { get; set; }
+    [Parameter, EditorRequired] public EventCallback<SlotDto> OnCancelSlot { get; set; }
+}

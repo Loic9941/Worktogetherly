@@ -1,0 +1,225 @@
+@page "/my-account"
+@layout PrivateMainLayout
+@using WorkTogetherly.Shared.Models
+@using WorkTogetherly.Shared.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject UserService UserService
+@inject ISnackbar Snackbar
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject PageTitleService PageTitleService
+
+<PageTitle>Mon compte</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h5" Class="mb-6 desktop-only-title">Mon compte</MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_profile is not null)
+    {
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudCard>
+                    @* Photo zone *@
+                    <div style="position: relative;">
+                        @if (!string.IsNullOrEmpty(_profile.PhotoPath))
+                        {
+                            <div style="display:flex; justify-content:center; padding:16px 16px 0; position:relative;">
+                                <MudAvatar Style="width:120px; height:120px;">
+                                    <MudImage Src="@UserService.GetPhotoUrl(_profile.PhotoPath)"
+                                              Alt="Photo de profil"
+                                              ObjectFit="ObjectFit.Cover"
+                                              Width="120" Height="120" />
+                                </MudAvatar>
+                                <div style="position:absolute; bottom:0; right:calc(50% - 72px); display:flex; gap:4px;">
+                                    <label for="profile-photo-edit" style="cursor:pointer; display:inline-flex;">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Color="Color.Primary"
+                                                       Variant="Variant.Filled"
+                                                       Size="Size.Small"
+                                                       Style="pointer-events:none;" />
+                                    </label>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Error"
+                                                   Variant="Variant.Filled"
+                                                   Size="Size.Small"
+                                                   OnClick="HandleDeletePhotoAsync" />
+                                </div>
+                                <InputFile id="profile-photo-edit" OnChange="HandlePhotoSelectedAsync"
+                                           accept="image/jpeg,image/png,image/webp" style="display:none;" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="display:flex; justify-content:center; padding:16px 16px 0;">
+                                <label for="profile-photo-new" style="cursor:pointer; display:inline-flex; flex-direction:column; align-items:center; gap:4px;">
+                                    <MudAvatar Style="width:120px; height:120px; background:var(--mud-palette-background-grey); border:2px dashed var(--mud-palette-lines-default);">
+                                        <MudIcon Icon="@Icons.Material.Filled.AddAPhoto" Size="Size.Large" Color="Color.Default" />
+                                    </MudAvatar>
+                                    <MudText Typo="Typo.caption" Color="Color.Primary">Ajouter une photo</MudText>
+                                </label>
+                                <InputFile id="profile-photo-new" OnChange="HandlePhotoSelectedAsync"
+                                           accept="image/jpeg,image/png,image/webp" style="display:none;" />
+                            </div>
+                        }
+
+                        @if (_uploadingPhoto)
+                        {
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-2" />
+                        }
+                    </div>
+
+                    <MudCardContent>
+                        <MudTextField Label="Email" Value="_profile.Email" ReadOnly="true" Class="mb-4" />
+                        <MudTextField Label="Prénom" @bind-Value="_firstName" Class="mb-4" />
+                        <MudTextField Label="Nom" @bind-Value="_lastName" Class="mb-4" />
+                    </MudCardContent>
+                    <MudCardActions Class="pa-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving"
+                                   Class="mud-full-width-sm">
+                            Enregistrer
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-4">Changer le mot de passe</MudText>
+                        <MudTextField Label="Mot de passe actuel" @bind-Value="_currentPassword" InputType="InputType.Password" Class="mb-4" />
+                        <MudTextField Label="Nouveau mot de passe" @bind-Value="_newPassword" InputType="InputType.Password" Class="mb-4" />
+                        <MudTextField Label="Confirmer le nouveau mot de passe" @bind-Value="_confirmPassword" InputType="InputType.Password" Class="mb-4" />
+                    </MudCardContent>
+                    <MudCardActions Class="pa-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangePasswordAsync" Disabled="_changingPassword"
+                                   Class="mud-full-width-sm">
+                            Changer le mot de passe
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Logout"
+                   Class="mt-4"
+                   FullWidth="true"
+                   OnClick="LogoutAsync">
+            Se déconnecter
+        </MudButton>
+    }
+</MudContainer>
+
+@code {
+    private UserProfileDto? _profile;
+    private string _firstName = "";
+    private string _lastName = "";
+    private bool _loading = true;
+    private bool _saving = false;
+    private bool _uploadingPhoto = false;
+
+    private string _currentPassword = "";
+    private string _newPassword = "";
+    private string _confirmPassword = "";
+    private bool _changingPassword = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.SetTitle("Mon compte");
+        _profile = await UserService.GetProfileAsync();
+        if (_profile is not null)
+        {
+            _firstName = _profile.FirstName;
+            _lastName = _profile.LastName;
+        }
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        var (success, error) = await UserService.UpdateProfileAsync(new UpdateProfileDto(_firstName, _lastName));
+        if (success)
+            Snackbar.Add("Profil mis à jour", Severity.Success);
+        else
+            Snackbar.Add(error ?? "Une erreur est survenue", Severity.Error);
+        _saving = false;
+    }
+
+    private async Task HandlePhotoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            Snackbar.Add("La photo ne doit pas dépasser 5 Mo", Severity.Warning);
+            return;
+        }
+        _uploadingPhoto = true;
+        var (result, error) = await UserService.UploadPhotoAsync(file);
+        if (result is not null)
+        {
+            _profile = result;
+            Snackbar.Add("Photo mise à jour", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(error ?? "Erreur lors du téléversement", Severity.Error);
+        }
+        _uploadingPhoto = false;
+    }
+
+    private async Task HandleDeletePhotoAsync()
+    {
+        _uploadingPhoto = true;
+        var (result, error) = await UserService.DeletePhotoAsync();
+        if (result is not null)
+        {
+            _profile = result;
+            Snackbar.Add("Photo supprimée", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(error ?? "Erreur lors de la suppression", Severity.Error);
+        }
+        _uploadingPhoto = false;
+    }
+
+    private async Task LogoutAsync()
+    {
+        await AuthService.LogoutAsync();
+        Nav.NavigateTo("/login");
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        if (_newPassword != _confirmPassword)
+        {
+            Snackbar.Add("Les mots de passe ne correspondent pas", Severity.Warning);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_currentPassword) || string.IsNullOrWhiteSpace(_newPassword))
+        {
+            Snackbar.Add("Veuillez remplir tous les champs", Severity.Warning);
+            return;
+        }
+        _changingPassword = true;
+        var (success, error) = await UserService.ChangePasswordAsync(_currentPassword, _newPassword);
+        if (success)
+        {
+            Snackbar.Add("Mot de passe modifié", Severity.Success);
+            _currentPassword = "";
+            _newPassword = "";
+            _confirmPassword = "";
+        }
+        else
+        {
+            Snackbar.Add(error ?? "Une erreur est survenue", Severity.Error);
+        }
+        _changingPassword = false;
+    }
+}

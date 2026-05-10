@@ -1,0 +1,24 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copie tous les projets
+COPY Domain/ Domain/
+COPY Application/ Application/
+COPY Infrastructure/ Infrastructure/
+COPY Presentation/ Presentation/
+
+# Restore & publish
+RUN dotnet restore Presentation/WorkTogetherly.Presentation.csproj
+RUN dotnet publish Presentation/WorkTogetherly.Presentation.csproj -c Release -o /app/out --no-restore
+
+# Image finale
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/out .
+
+RUN mkdir -p /app/wwwroot/uploads/workspaces /app/wwwroot/uploads/users
+
+ENV ASPNETCORE_URLS=http://0.0.0.0:$PORT
+EXPOSE 8080
+
+ENTRYPOINT ["./WorkTogetherly.Presentation"]

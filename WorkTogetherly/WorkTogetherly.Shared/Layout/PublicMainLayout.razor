@@ -1,0 +1,33 @@
+﻿@using MudBlazor
+@using WorkTogetherly.Shared.Theme
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="@AppTheme.Themetheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div class="public-layout-background">
+    <MudLayout>
+        <!--<MudAppBar>
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+            WorkTogetherly
+        </MudAppBar>
+        <MudDrawer @bind-Open="@_drawerOpen">
+            <NavMenu/>
+        </MudDrawer>-->
+        <MudMainContent Style="background-color: #F5EDD0; min-height: 100vh;">
+
+            @Body
+
+        </MudMainContent>
+    </MudLayout>
+</div>
+@code {
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

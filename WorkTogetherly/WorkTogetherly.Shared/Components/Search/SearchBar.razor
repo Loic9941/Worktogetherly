@@ -1,0 +1,258 @@
+@inject WorkspaceService WorkspaceService
+@inject IGeolocationService GeolocationService
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <div class="search-bar-row">
+        <div class="search-bar-city">
+            @if (_locating || _fetchingSuggestions)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:3px; border-radius:2px;" />
+            }
+            <MudAutocomplete T="CitySuggestion"
+                             Label="Ville *"
+                             Placeholder="Ex: Bruxelles, Paris..."
+                             @bind-Value="_selectedSuggestion"
+                             SearchFunc="FetchSuggestionsAsync"
+                             ToStringFunc="@(s => s?.DisplayName ?? string.Empty)"
+                             Adornment="Adornment.End"
+                             AdornmentIcon="@Icons.Material.Filled.MyLocation"
+                             AdornmentColor="Color.Primary"
+                             AdornmentAriaLabel="Utiliser ma position"
+                             OnAdornmentClick="UseMyLocationAsync"
+                             Disabled="_locating"
+                             Variant="Variant.Outlined"
+                             MinCharacters="3"
+                             DebounceInterval="400"
+                             ResetValueOnEmptyText="true"
+                             CoerceText="false"
+                             Error="_noSelectionError"
+                             ErrorText="Champ requis." />
+        </div>
+        <div class="search-bar-date">
+            <MudDatePicker @bind-Date="_date"
+                           Label="Date *"
+                           Variant="Variant.Outlined"
+                           MinDate="DateTime.Today"
+                           DateFormat="dd/MM/yyyy"
+                           Error="_dateError"
+                           ErrorText="La date est requise." />
+        </div>
+        <div class="search-bar-actions">
+            @if (AllMaterials.Count > 0 || AllRules.Count > 0)
+            {
+                <MudBadge Content="@_activeFilterCount"
+                          Color="Color.Secondary"
+                          Overlap="true"
+                          Visible="@(_activeFilterCount > 0)">
+                    <MudIconButton Icon="@Icons.Material.Filled.FilterAlt"
+                                   Color="@(_filtersExpanded ? Color.Primary : Color.Default)"
+                                   Variant="Variant.Outlined"
+                                   Size="Size.Large"
+                                   Style="height: 56px; width: 56px;"
+                                   Title="Filtres"
+                                   OnClick="@(() => _filtersExpanded = !_filtersExpanded)" />
+                </MudBadge>
+            }
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Style="height: 56px;"
+                       Disabled="_searching"
+                       OnClick="SearchAsync"
+                       StartIcon="@(_searching ? null : Icons.Material.Filled.Search)">
+                @if (_searching)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                }
+                else
+                {
+                    @("Rechercher")
+                }
+            </MudButton>
+        </div>
+    </div>
+
+
+    @if (AllMaterials.Count > 0 || AllRules.Count > 0)
+    {
+        <MudCollapse Expanded="_filtersExpanded">
+            <MudDivider Class="mt-3 mb-3" />
+            @if (AllMaterials.Count > 0)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">Matériel</MudText>
+                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mb-2">
+                    @foreach (var material in AllMaterials)
+                    {
+                        var id = material.Id;
+                        var selected = _selectedMaterialIds.Contains(id);
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@(selected ? Color.Primary : Color.Default)"
+                                 Variant="@(selected ? Variant.Filled : Variant.Outlined)"
+                                 OnClick="@(() => ToggleMaterialFilter(id))">
+                            @material.Name
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+            @if (AllRules.Count > 0)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">Règles</MudText>
+                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                    @foreach (var rule in AllRules)
+                    {
+                        var id = rule.Id;
+                        var selected = _selectedRuleIds.Contains(id);
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@(selected ? Color.Secondary : Color.Default)"
+                                 Variant="@(selected ? Variant.Filled : Variant.Outlined)"
+                                 OnClick="@(() => ToggleRuleFilter(id))">
+                            @rule.Name
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+        </MudCollapse>
+    }
+</MudPaper>
+
+<style>
+    .search-bar-row {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .search-bar-city {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .search-bar-date {
+        width: 180px;
+        flex-shrink: 0;
+    }
+
+    .search-bar-actions {
+        flex-shrink: 0;
+        padding-top: 0.4rem;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .locating-spin {
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @@media (max-width: 600px) {
+        .search-bar-row {
+            flex-direction: column;
+        }
+
+        .search-bar-city,
+        .search-bar-date,
+        .search-bar-actions {
+            width: 100%;
+        }
+
+        .search-bar-date {
+            width: 100%;
+        }
+
+        .search-bar-actions {
+            padding-top: 0;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public EventCallback<WorkspaceSearchRequest> OnSearch { get; set; }
+    [Parameter] public List<MaterialDto> AllMaterials { get; set; } = [];
+    [Parameter] public List<RuleDto> AllRules { get; set; } = [];
+    [Parameter] public EventCallback<AmenityFilter> OnAmenityFilterChanged { get; set; }
+
+    private CitySuggestion? _selectedSuggestion;
+    private DateTime? _date;
+    private bool _searching;
+    private bool _locating;
+    private bool _noSelectionError;
+    private bool _dateError;
+    private HashSet<int> _selectedMaterialIds = [];
+    private HashSet<int> _selectedRuleIds = [];
+    private bool _filtersExpanded = true;
+    private bool _fetchingSuggestions;
+    private CancellationTokenSource? _suggestionsCts;
+    private int _activeFilterCount => _selectedMaterialIds.Count + _selectedRuleIds.Count;
+
+    private async Task UseMyLocationAsync()
+    {
+        _locating = true;
+        StateHasChanged();
+        var coords = await GeolocationService.GetCurrentLocationAsync();
+        if (coords.HasValue)
+        {
+            var suggestion = await WorkspaceService.ReverseGeocodeAsync(coords.Value.Latitude, coords.Value.Longitude);
+            if (suggestion is not null)
+            {
+                _selectedSuggestion = suggestion;
+                _noSelectionError = false;
+            }
+        }
+        _locating = false;
+    }
+
+    private async Task ToggleMaterialFilter(int id)
+    {
+        if (!_selectedMaterialIds.Remove(id))
+            _selectedMaterialIds.Add(id);
+        await OnAmenityFilterChanged.InvokeAsync(new AmenityFilter(_selectedMaterialIds.ToList(), _selectedRuleIds.ToList()));
+    }
+
+    private async Task ToggleRuleFilter(int id)
+    {
+        if (!_selectedRuleIds.Remove(id))
+            _selectedRuleIds.Add(id);
+        await OnAmenityFilterChanged.InvokeAsync(new AmenityFilter(_selectedMaterialIds.ToList(), _selectedRuleIds.ToList()));
+    }
+
+    private async Task<IEnumerable<CitySuggestion>> FetchSuggestionsAsync(string input, CancellationToken ct)
+    {
+        _suggestionsCts?.Cancel();
+        _suggestionsCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _fetchingSuggestions = true;
+        StateHasChanged();
+        try { return await WorkspaceService.GetCitySuggestionsAsync(input, _suggestionsCts.Token); }
+        catch (OperationCanceledException) { return []; }
+        finally { _fetchingSuggestions = false; }
+    }
+
+    private async Task SearchAsync()
+    {
+        _noSelectionError = _selectedSuggestion is null;
+        _dateError = _date is null;
+        if (_noSelectionError || _dateError) return;
+
+        _searching = true;
+
+        var request = new WorkspaceSearchRequest
+        {
+            Latitude = _selectedSuggestion!.Latitude,
+            Longitude = _selectedSuggestion.Longitude,
+            RadiusKm = 20,
+            Date = DateOnly.FromDateTime(_date!.Value)
+        };
+
+        _searching = false;
+        _filtersExpanded = false;
+        await OnSearch.InvokeAsync(request);
+    }
+}

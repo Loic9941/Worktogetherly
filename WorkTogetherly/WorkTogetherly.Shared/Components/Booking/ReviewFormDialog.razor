@@ -1,0 +1,106 @@
+@inject ReviewService ReviewService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_existingReview is null ? "Laisser un avis" : "Modifier mon avis")</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                <div>
+                    <MudText Typo="Typo.body2" Class="mb-1">Note *</MudText>
+                    <MudRating @bind-SelectedValue="_rating" MaxValue="5" Size="Size.Large" Color="Color.Warning" />
+                    @if (_ratingError)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Error">Veuillez sélectionner une note.</MudText>
+                    }
+                </div>
+                <MudTextField @bind-Value="_comment"
+                              Label="Commentaire"
+                              Variant="Variant.Outlined"
+                              Lines="4"
+                              MaxLength="2000"
+                              Counter="2000"
+                              Immediate="true" />
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_saving">Annuler</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="SubmitAsync"
+                   Disabled="_saving || _loading">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Enregistrer
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter, EditorRequired] public int BookingId { get; set; }
+
+    private ReviewDto? _existingReview;
+    private int _rating;
+    private string _comment = string.Empty;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _ratingError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _existingReview = await ReviewService.GetByBookingAsync(BookingId);
+        if (_existingReview is not null)
+        {
+            _rating = _existingReview.Rating;
+            _comment = _existingReview.Comment;
+        }
+        _loading = false;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_rating == 0)
+        {
+            _ratingError = true;
+            return;
+        }
+        _ratingError = false;
+        _saving = true;
+
+        ReviewDto? result;
+        string? error;
+
+        if (_existingReview is null)
+        {
+            (result, error) = await ReviewService.CreateAsync(new CreateReviewRequest(BookingId, _rating, _comment));
+        }
+        else
+        {
+            (result, error) = await ReviewService.UpdateAsync(_existingReview.Id, new UpdateReviewRequest(_rating, _comment));
+        }
+
+        _saving = false;
+
+        if (error is not null)
+        {
+            Snackbar.Add(error, Severity.Error);
+            return;
+        }
+
+        Snackbar.Add("Avis enregistré !", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

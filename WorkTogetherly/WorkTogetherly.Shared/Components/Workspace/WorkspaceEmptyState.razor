@@ -1,0 +1,25 @@
+@using WorkTogetherly.Shared.Models
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-12">
+    <MudPaper Elevation="3" Class="pa-8 text-center">
+        <MudIcon Icon="@Icons.Material.Outlined.Business"
+                 Style="font-size: 5rem;"
+                 Color="Color.Default"
+                 Class="mb-4" />
+        <MudText Typo="Typo.h5" Class="mb-2">Vous n'avez pas encore d'espace de travail</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Default" Class="mb-6">
+            Créez votre espace et proposez-le aux autres utilisateurs.
+        </MudText>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OnCreate">
+            Créer mon espace
+        </MudButton>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter, EditorRequired] public EventCallback OnCreate { get; set; }
+}

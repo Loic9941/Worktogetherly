@@ -1,0 +1,205 @@
+@using WorkTogetherly.Shared.Models
+@using WorkTogetherly.Shared.Services
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@_booking.Workspace.Name</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="Color.Primary" />
+                <MudText Typo="Typo.body1">@_booking.Workspace.Address</MudText>
+            </MudStack>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Color="Color.Primary" />
+                <MudText Typo="Typo.body1">
+                    @_booking.SlotStart.ToString("dddd d MMMM yyyy", new System.Globalization.CultureInfo("fr-FR"))
+                </MudText>
+            </MudStack>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.AccessTime" Color="Color.Primary" />
+                <MudText Typo="Typo.body1">@_booking.SlotStart.ToString("HH:mm") – @_booking.SlotEnd.ToString("HH:mm")</MudText>
+            </MudStack>
+
+            @if (_canModify)
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsWalk" Color="Color.Primary" />
+                    @if (_editingArrivalTime)
+                    {
+                        <MudTimePicker @bind-Time="_newArrivalTime"
+                                       Label="Heure d'arrivée"
+                                       AmPm="false"
+                                       MinTime="TimeSpan.FromTicks(_booking.SlotStart.TimeOfDay.Ticks)"
+                                       MaxTime="TimeSpan.FromTicks(_booking.SlotEnd.TimeOfDay.Ticks)"
+                                       Editable="true"
+                                       Style="max-width:160px;" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   OnClick="SaveArrivalTimeAsync" Disabled="_saving">
+                            Enregistrer
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Size="Size.Small"
+                                   OnClick="@(() => _editingArrivalTime = false)">
+                            Annuler
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1">Arrivée prévue à @_booking.ArrivalTime.ToString("HH:mm")</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       Title="Modifier l'heure d'arrivée"
+                                       OnClick="@(() => { _newArrivalTime = _booking.ArrivalTime.ToTimeSpan(); _editingArrivalTime = true; })" />
+                    }
+                </MudStack>
+
+                @if (!string.IsNullOrEmpty(_arrivalTimeError))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_arrivalTimeError</MudAlert>
+                }
+            }
+            else
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsWalk" Color="Color.Primary" />
+                    <MudText Typo="Typo.body1">Arrivée prévue à @_booking.ArrivalTime.ToString("HH:mm")</MudText>
+                </MudStack>
+            }
+
+            @if (_booking.SlotEnd < DateTime.Now)
+            {
+                <MudDivider />
+                <MudText Typo="Typo.subtitle1"><b>Avis sur cet espace</b></MudText>
+                @if (_hasReview)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudRating ReadOnly="true" SelectedValue="_currentRating" MaxValue="5" Size="Size.Small" Color="Color.Warning" />
+                        <MudText Typo="Typo.body2">Votre avis a été enregistré.</MudText>
+                    </MudStack>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="OpenReviewDialogAsync">
+                        Modifier mon avis
+                    </MudButton>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Vous n'avez pas encore laissé d'avis.</MudText>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Star"
+                               OnClick="OpenReviewDialogAsync">
+                        Laisser un avis
+                    </MudButton>
+                }
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        @if (_canModify)
+        {
+            <MudButton Color="Color.Error"
+                       Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Cancel"
+                       OnClick="CancelBookingAsync"
+                       Disabled="_saving">
+                Annuler la réservation
+            </MudButton>
+        }
+        <MudButton OnClick="Close">Fermer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter, EditorRequired] public BookingDto Booking { get; set; } = null!;
+    [Parameter] public EventCallback<BookingDto> OnReviewSubmitted { get; set; }
+    [Parameter] public EventCallback<BookingDto> OnBookingChanged { get; set; }
+
+    [Inject] IDialogService DialogService { get; set; } = null!;
+    [Inject] BookingService BookingService { get; set; } = null!;
+    [Inject] ISnackbar Snackbar { get; set; } = null!;
+
+    private BookingDto _booking = null!;
+    private bool _hasReview;
+    private int _currentRating;
+    private bool _editingArrivalTime;
+    private TimeSpan? _newArrivalTime;
+    private string? _arrivalTimeError;
+    private bool _saving;
+
+    private bool _canModify => !_booking.IsCancelled
+        && _booking.SlotStart.Date + _booking.ArrivalTime.ToTimeSpan() > DateTime.Now;
+
+    protected override void OnParametersSet()
+    {
+        _booking = Booking;
+        _hasReview = _booking.HasReview;
+    }
+
+    private async Task SaveArrivalTimeAsync()
+    {
+        if (_newArrivalTime is null) return;
+        var newTime = TimeOnly.FromTimeSpan(_newArrivalTime.Value);
+        _saving = true;
+        _arrivalTimeError = null;
+        var (updated, error) = await BookingService.UpdateArrivalTimeAsync(_booking.Id, newTime);
+        _saving = false;
+        if (updated is not null)
+        {
+            _booking = updated;
+            _editingArrivalTime = false;
+            await OnBookingChanged.InvokeAsync(_booking);
+            Snackbar.Add("Heure d'arrivée mise à jour", Severity.Success);
+        }
+        else
+        {
+            _arrivalTimeError = error;
+        }
+    }
+
+    private async Task CancelBookingAsync()
+    {
+        _saving = true;
+        var (success, error) = await BookingService.CancelBookingAsync(_booking.Id);
+        _saving = false;
+        if (success)
+        {
+            _booking = _booking with { IsCancelled = true };
+            await OnBookingChanged.InvokeAsync(_booking);
+            MudDialog.Close(_booking);
+        }
+        else
+        {
+            Snackbar.Add(error ?? "Une erreur est survenue", Severity.Error);
+        }
+    }
+
+    private async Task OpenReviewDialogAsync()
+    {
+        var parameters = new DialogParameters<ReviewFormDialog>
+        {
+            { x => x.BookingId, _booking.Id }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<ReviewFormDialog>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false } && result.Data is ReviewDto review)
+        {
+            _hasReview = true;
+            _currentRating = review.Rating;
+            var updatedBooking = _booking with { HasReview = true };
+            _booking = updatedBooking;
+            await OnReviewSubmitted.InvokeAsync(updatedBooking);
+        }
+    }
+
+    void Close() => MudDialog.Close();
+}

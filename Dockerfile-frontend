@@ -1,0 +1,26 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copie les projets frontend
+COPY WorkTogetherly/WorkTogetherly.Shared/ WorkTogetherly/WorkTogetherly.Shared/
+COPY WorkTogetherly/WorkTogetherly.Web.Client/ WorkTogetherly/WorkTogetherly.Web.Client/
+
+# Restore & publish
+RUN dotnet restore WorkTogetherly/WorkTogetherly.Web.Client/WorkTogetherly.Web.Client.csproj
+RUN dotnet publish WorkTogetherly/WorkTogetherly.Web.Client/WorkTogetherly.Web.Client.csproj -c Release -o /app/out --no-restore
+
+# Image finale — nginx sert les fichiers statiques WASM
+FROM nginx:alpine AS runtime
+COPY --from=build /app/out/wwwroot /usr/share/nginx/html
+
+# Réécriture des routes SPA (toutes les routes → index.html)
+RUN printf 'server {\n\
+    listen 80;\n\
+    root /usr/share/nginx/html;\n\
+    index index.html;\n\
+    location / {\n\
+        try_files $uri $uri/ /index.html;\n\
+    }\n\
+}\n' > /etc/nginx/conf.d/default.conf
+
+EXPOSE 80

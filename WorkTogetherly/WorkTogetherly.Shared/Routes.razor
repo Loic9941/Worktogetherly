@@ -1,0 +1,40 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using WorkTogetherly.Shared.Auth
+@inject IAppInitializer Initializer
+
+@if (!_initialized)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <Router AppAssembly="typeof(Routes).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData"
+                DefaultLayout="typeof(WorkTogetherly.Shared.Layout.PublicMainLayout)">
+                
+                <NotAuthorized>
+                    <RedirectToLogin />
+                </NotAuthorized>
+                <Authorizing>
+                    <p>Vérification en cours...</p>
+                </Authorizing>
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <p>Page introuvable.</p>
+        </NotFound>
+    </Router>
+}
+
+@code {
+    private bool _initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Initializer.InitializeAsync(); // no-op for web, real init for MAUI
+        _initialized = true;
+        StateHasChanged();
+    }
+}

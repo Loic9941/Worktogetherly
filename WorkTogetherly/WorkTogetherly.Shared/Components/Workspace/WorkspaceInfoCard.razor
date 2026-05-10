@@ -1,0 +1,189 @@
+@using WorkTogetherly.Shared.Models
+@using WorkTogetherly.Shared.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject WorkspaceService WorkspaceService
+
+<MudCard Elevation="3">
+
+    @* Photo zone *@
+    <div style="position: relative;">
+        @if (!string.IsNullOrEmpty(Workspace.PhotoPath))
+        {
+            <img src="@WorkspaceService.GetPhotoUrl(Workspace.PhotoPath)"
+                 alt="Photo de l'espace de travail"
+                 style="width:100%; height:220px; object-fit:cover; display:block;" />
+
+            <div style="position:absolute; top:8px; right:8px; display:flex; gap:4px;">
+                @* label for= association avoids the button-inside-label issue *@
+                <label for="photo-upload-edit" style="cursor:pointer; display:inline-flex;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Color="Color.Surface"
+                                   Variant="Variant.Filled"
+                                   Size="Size.Small"
+                                   Style="pointer-events:none;" />
+                </label>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                               Color="Color.Error"
+                               Variant="Variant.Filled"
+                               Size="Size.Small"
+                               OnClick="HandleDeletePhotoAsync" />
+            </div>
+            <InputFile id="photo-upload-edit" OnChange="HandlePhotoSelectedAsync"
+                       accept="image/jpeg,image/png,image/webp"
+                       style="display:none;" />
+        }
+        else
+        {
+            <label for="photo-upload-new" style="cursor:pointer; display:block;">
+                <div style="width:100%; height:160px; display:flex; flex-direction:column;
+                            align-items:center; justify-content:center;
+                            border-bottom: 2px dashed var(--mud-palette-lines-default);
+                            background: var(--mud-palette-background-grey);">
+                    <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate"
+                             Size="Size.Large" Color="Color.Default" Class="mb-2" />
+                    <MudText Typo="Typo.body2" Color="Color.Primary">Ajouter une photo</MudText>
+                </div>
+            </label>
+            <InputFile id="photo-upload-new" OnChange="HandlePhotoSelectedAsync"
+                       accept="image/jpeg,image/png,image/webp"
+                       style="display:none;" />
+        }
+
+        @if (_uploading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="ma-2">@_error</MudAlert>
+        }
+    </div>
+
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudGrid>
+                <MudItem xs="12" sm="8">
+                    <MudText Typo="Typo.h5">@Workspace.Name</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-1">
+                        <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Class="mr-1" />
+                        @Workspace.Address
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="d-flex align-center justify-sm-end gap-2">
+                    <MudChip T="string"
+                             Color="@(Workspace.IsActive ? Color.Success : Color.Default)"
+                             Size="Size.Small"
+                             Variant="Variant.Filled">
+                        @(Workspace.IsActive ? "Actif" : "Inactif")
+                    </MudChip>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="OnEdit">
+                        Modifier
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.subtitle2">Description</MudText>
+                <MudText Typo="Typo.body2">@Workspace.Description</MudText>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.subtitle2">Capacité</MudText>
+                <MudText Typo="Typo.body2">@Workspace.Capacity personne(s)</MudText>
+            </MudItem>
+
+            @if (Workspace.Materials.Count > 0)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Matériel</MudText>
+                    <MudChipSet T="string">
+                        @foreach (var m in Workspace.Materials)
+                        {
+                            <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                                @($"{m.Name} ×{m.Quantity}")
+                            </MudChip>
+                        }
+                    </MudChipSet>
+                </MudItem>
+            }
+
+            @if (Workspace.Rules.Count > 0)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Règles</MudText>
+                    <MudChipSet T="string">
+                        @foreach (var r in Workspace.Rules)
+                        {
+                            <MudChip T="string" Color="Color.Secondary" Variant="Variant.Outlined" Size="Size.Small">
+                                @r.Name
+                            </MudChip>
+                        }
+                    </MudChipSet>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public WorkspaceDto Workspace { get; set; } = default!;
+    [Parameter, EditorRequired] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback<WorkspaceDto> OnWorkspaceUpdated { get; set; }
+
+    private bool _uploading;
+    private string? _error;
+
+    private async Task HandlePhotoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        var file = e.File;
+
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            _error = "La photo ne doit pas dépasser 5 Mo";
+            return;
+        }
+
+        _uploading = true;
+        StateHasChanged();
+
+        try
+        {
+            var (result, error) = await WorkspaceService.UploadPhotoAsync(Workspace.Id, file);
+            if (result is not null)
+                await OnWorkspaceUpdated.InvokeAsync(result);
+            else
+                _error = error ?? "Erreur lors du téléversement";
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+
+    private async Task HandleDeletePhotoAsync()
+    {
+        _error = null;
+        _uploading = true;
+        StateHasChanged();
+
+        try
+        {
+            var (result, error) = await WorkspaceService.DeletePhotoAsync(Workspace.Id);
+            if (result is not null)
+                await OnWorkspaceUpdated.InvokeAsync(result);
+            else
+                _error = error ?? "Erreur lors de la suppression";
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+}

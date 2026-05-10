@@ -1,0 +1,115 @@
+@using WorkTogetherly.Shared.Models
+@using WorkTogetherly.Shared.Services
+@inject SlotService SlotService
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudDatePicker @bind-Date="_model.Date"
+                               Label="Jour *"
+                               Variant="Variant.Outlined"
+                               MinDate="DateTime.Today"
+                               />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTimePicker @bind-Time="_model.StartTime"
+                               Label="Heure de début *"
+                               Variant="Variant.Outlined"
+                               AmPm="false"
+                               />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTimePicker @bind-Time="_model.EndTime"
+                               Label="Heure de fin *"
+                               Variant="Variant.Outlined"
+                               AmPm="false"
+                               />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_model.Capacity"
+                                 Label="Nombre de places *"
+                                 Variant="Variant.Outlined"
+                                 Min="1"
+                                 />
+            </MudItem>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_isSubmitting">Annuler</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="SubmitAsync"
+                   Disabled="_isSubmitting">
+            @(_isSubmitting ? "Enregistrement..." : "Enregistrer")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public SlotDto? Slot { get; set; }
+    [Parameter] public int WorkspaceId { get; set; }
+    [Parameter] public int WorkspaceDefaultCapacity { get; set; }
+
+    private SlotFormModel _model = new();
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    protected override void OnInitialized()
+    {
+        if (Slot is not null)
+        {
+            _model = new SlotFormModel
+            {
+                Date = Slot.StartDateTime.Date,
+                StartTime = Slot.StartDateTime.TimeOfDay,
+                EndTime = Slot.EndDateTime.TimeOfDay,
+                Capacity = Slot.Capacity
+            };
+        }
+        else
+        {
+            _model.Capacity = WorkspaceDefaultCapacity;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        if (_isSubmitting) return;
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            (SlotDto? result, string? error) response;
+
+            if (Slot is null)
+                response = await SlotService.CreateSlotAsync(WorkspaceId, _model);
+            else
+                response = await SlotService.UpdateSlotAsync(WorkspaceId, Slot.Id, _model);
+
+            if (response.result is not null)
+                MudDialog.Close(DialogResult.Ok(response.result));
+            else
+                _errorMessage = response.error ?? "Une erreur est survenue";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

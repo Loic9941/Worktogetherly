@@ -1,0 +1,85 @@
+@inject MessageService MessageService
+@inject NotificationHubService HubService
+@implements IAsyncDisposable
+
+<MudBadge Content="@_unreadCount" Color="Color.Error" Overlap="true" Visible="@(_unreadCount > 0)">
+    <MudIconButton Icon="@Icons.Material.Filled.Notifications"
+                   Color="Color.Inherit"
+                   OnClick="TogglePopover" />
+</MudBadge>
+
+<MudOverlay Visible="@_open" OnClick="TogglePopover" ZIndex="1000" />
+
+<MudPopover Open="@_open" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Paper="true" Style="z-index:1001;">
+    <MudPaper Style="width:360px; max-height:480px; overflow-y:auto;" Elevation="4">
+        <MudList T="MessageDto" Dense="true">
+            @if (_unreadCount == 0)
+            {
+                <MudListItem>
+                    <MudText Typo="Typo.body2" Class="pa-2" Style="color:var(--mud-palette-text-secondary)">
+                        Aucune notification non lue
+                    </MudText>
+                </MudListItem>
+            }
+            else
+            {
+                @foreach (var msg in _messages.Where(m => !m.IsRead))
+                {
+                    <MudListItem Style="background-color:var(--mud-palette-action-default-hover)">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.body2" Style="flex:1">@msg.Content</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.DoneAll"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           Title="Marquer comme lu"
+                                           OnClick="@(() => MarkAsReadAsync(msg))" />
+                        </MudStack>
+                        <MudText Typo="Typo.caption" Style="color:var(--mud-palette-text-secondary)">
+                            @msg.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </MudText>
+                    </MudListItem>
+                    <MudDivider />
+                }
+            }
+        </MudList>
+    </MudPaper>
+</MudPopover>
+
+@code {
+    private List<MessageDto> _messages = [];
+    private int _unreadCount => _messages.Count(m => !m.IsRead);
+    private bool _open;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _messages = await MessageService.GetMyMessagesAsync();
+
+        HubService.OnMessageReceived += OnNewMessage;
+        await HubService.StartAsync();
+    }
+
+    private void OnNewMessage(MessageDto message)
+    {
+        _messages.Insert(0, message);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void TogglePopover() => _open = !_open;
+
+    private async Task MarkAsReadAsync(MessageDto message)
+    {
+        var success = await MessageService.MarkAsReadAsync(message.Id);
+        if (success)
+        {
+            var idx = _messages.IndexOf(message);
+            if (idx >= 0)
+                _messages[idx] = message with { IsRead = true };
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        HubService.OnMessageReceived -= OnNewMessage;
+        await HubService.DisposeAsync();
+    }
+}

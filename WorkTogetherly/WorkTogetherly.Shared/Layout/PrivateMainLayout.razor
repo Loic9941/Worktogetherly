@@ -1,0 +1,97 @@
+﻿<style>
+    @@media (max-width: 959.95px) {
+        .mobile-main-content {
+            padding-bottom: 64px !important;
+        }
+    }
+</style>
+@using MudBlazor
+@using WorkTogetherly.Shared.Theme
+@using WorkTogetherly.Shared.Services
+@inherits LayoutComponentBase
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject PageTitleService PageTitleService
+@implements IDisposable
+
+<MudThemeProvider Theme="@AppTheme.Themetheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar>
+        <MudHidden Breakpoint="Breakpoint.SmAndDown">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="DrawerToggle" />
+        </MudHidden>
+        <MudHidden Breakpoint="Breakpoint.MdAndUp">
+            @if (!string.IsNullOrEmpty(PageTitleService.Title))
+            {
+                <MudText Typo="Typo.h6">@PageTitleService.Title</MudText>
+            }
+            else
+            {
+                <span>WorkTogetherly</span>
+            }
+        </MudHidden>
+        <MudHidden Breakpoint="Breakpoint.SmAndDown">
+            <span>WorkTogetherly</span>
+        </MudHidden>
+        <MudSpacer />
+        <NotificationBell />
+        <MudHidden Breakpoint="Breakpoint.SmAndDown">
+            <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <MudMenuItem Href="/my-account" Icon="@Icons.Material.Filled.ManageAccounts">Mon compte</MudMenuItem>
+                <MudMenuItem OnClick="LogoutAsync" Icon="@Icons.Material.Filled.Logout">Se déconnecter</MudMenuItem>
+            </MudMenu>
+        </MudHidden>
+    </MudAppBar>
+    <MudDrawer @bind-Open="@_drawerOpen" Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md" Style="background-color: #F5EDD0;">
+        <NavMenu/>
+    </MudDrawer>
+    <MudHidden Breakpoint="Breakpoint.MdAndUp">
+        <MudAppBar Bottom="true">
+            <MudSpacer />
+            <MudIconButton Href="/my-workspace" Icon="@Icons.Material.Filled.Business" Color="Color.Inherit" />
+            <MudSpacer />
+            <MudIconButton Href="/search" Icon="@Icons.Material.Filled.Search" Color="Color.Inherit" />
+            <MudSpacer />
+            <MudIconButton Href="/my-bookings" Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Inherit" />
+            <MudSpacer />
+            <MudIconButton Href="/my-account" Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" />
+            <MudSpacer />
+        </MudAppBar>
+    </MudHidden>
+    <MudMainContent Style="background-color: #F5EDD0; min-height: 100vh;" Class="mobile-main-content">
+        @Body
+    </MudMainContent>
+</MudLayout>
+@code {
+    bool _drawerOpen = true;
+
+    protected override void OnInitialized()
+    {
+        PageTitleService.TitleChanged += OnTitleChanged;
+    }
+
+    private void OnTitleChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        PageTitleService.TitleChanged -= OnTitleChanged;
+    }
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private async Task LogoutAsync()
+    {
+        await AuthService.LogoutAsync();
+        Nav.NavigateTo("/login");
+    }
+}

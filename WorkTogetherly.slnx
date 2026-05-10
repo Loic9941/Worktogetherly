@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Application/">
+    <Project Path="Application/WorkTogetherly.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Domain/">
+    <Project Path="Domain/WorkTogetherly.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="Infrastructure/WorkTogetherly.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Presentation/">
+    <Project Path="Presentation/WorkTogetherly.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/UI/">
+    <Project Path="WorkTogetherly/WorkTogetherly.Shared/WorkTogetherly.Shared.csproj" Id="d907c94d-ced5-4916-824a-3590c13f546c" />
+    <Project Path="WorkTogetherly/WorkTogetherly.Web.Client/WorkTogetherly.Web.Client.csproj" Id="e60ee124-de03-4d01-9806-9d6f26283669" />
+<Project Path="WorkTogetherly/WorkTogetherly/WorkTogetherly.csproj" Id="d68af13f-9538-4f2e-a549-1272f8755ac1">
+      <Deploy Solution="Debug|*" />
+    </Project>
+  </Folder>
+  <Folder Name="/src/UnitTests/">
+    <Project Path="TestWorkTogetherly/TestWorkTogetherly.csproj" Id="15e9eec2-f196-4986-a754-ab32a8aa4a51" />
+  </Folder>
+</Solution>

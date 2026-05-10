@@ -1,0 +1,145 @@
+@page "/my-bookings"
+@layout PrivateMainLayout
+@inject BookingService BookingService
+@inject IDialogService DialogService
+@inject PageTitleService PageTitleService
+
+<PageTitle>Mes réservations</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <MudText Typo="Typo.h5" Class="mb-4 desktop-only-title">Mes réservations</MudText>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="1" Style="border-radius: 12px;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText Typo="Typo.subtitle1">Filtres</MudText>
+            <MudBadge Content="@_activeFilterCount"
+                      Color="Color.Secondary"
+                      Overlap="true"
+                      Visible="@(_activeFilterCount > 0)">
+                <MudIconButton Icon="@Icons.Material.Filled.FilterAlt"
+                               Color="@(_filtersExpanded ? Color.Primary : Color.Default)"
+                               Variant="Variant.Outlined"
+                               Title="Filtres"
+                               OnClick="@(() => _filtersExpanded = !_filtersExpanded)" />
+            </MudBadge>
+        </MudStack>
+        <MudCollapse Expanded="_filtersExpanded">
+            <MudGrid Class="mt-1" Spacing="2">
+                <MudItem xs="6">
+                    <MudDatePicker Label="Du" @bind-Date="_from" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudDatePicker Label="Au" @bind-Date="_to" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="ApplyFilterAsync">Appliquer</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCollapse>
+    </MudPaper>
+
+    <MudPaper Elevation="2" Class="pa-4" Style="border-radius: 12px;">
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+        }
+        else
+        {
+            @if (_upcoming.Count > 0)
+            {
+                <MudStack Spacing="2" Class="mb-6">
+                    @foreach (var booking in _upcoming)
+                    {
+                        <BookingCard Booking="booking" OnClick="OnBookingClickedAsync" />
+                    }
+                </MudStack>
+            }
+
+            @if (_past.Count > 0)
+            {
+                <MudText Typo="Typo.h6" Class="mb-2">Passées</MudText>
+                <MudStack Spacing="2">
+                    @foreach (var booking in _past)
+                    {
+                        <BookingCard Booking="booking" OnClick="OnBookingClickedAsync" />
+                    }
+                </MudStack>
+            }
+
+            @if (_upcoming.Count == 0 && _past.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Text">
+                    Aucune réservation sur cette période.
+                </MudAlert>
+            }
+        }
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+    private static readonly DateTime DefaultFrom = DateTime.Today;
+    private static readonly DateTime DefaultTo = DateTime.Today.AddDays(6);
+
+    private DateTime? _from = DefaultFrom;
+    private DateTime? _to = DefaultTo;
+    private bool _loading;
+    private bool _filtersExpanded = true;
+    private int _activeFilterCount => (_from?.Date != DefaultFrom.Date || _to?.Date != DefaultTo.Date) ? 1 : 0;
+    private List<BookingDto> _upcoming = [];
+    private List<BookingDto> _past = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageTitleService.SetTitle("Mes réservations");
+        await LoadAsync();
+    }
+
+    private async Task ApplyFilterAsync()
+    {
+        _filtersExpanded = false;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var from = _from ?? DateTime.Today;
+        var to = _to ?? from.AddDays(6);
+        var bookings = await BookingService.GetMyBookingsAsync(from, to);
+        var today = DateTime.Today;
+        _upcoming = bookings.Where(b => b.SlotStart.Date >= today).OrderBy(b => b.SlotStart).ToList();
+        _past = bookings.Where(b => b.SlotStart.Date < today).OrderByDescending(b => b.SlotStart).ToList();
+        _loading = false;
+    }
+
+    private async Task OnBookingClickedAsync(BookingDto booking)
+    {
+        var parameters = new DialogParameters<BookingDetailDialog>
+        {
+            { x => x.Booking, booking },
+            { x => x.OnReviewSubmitted, EventCallback.Factory.Create<BookingDto>(this, updated => UpdateBooking(updated)) },
+            { x => x.OnBookingChanged, EventCallback.Factory.Create<BookingDto>(this, updated => UpdateBooking(updated)) }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<BookingDetailDialog>(booking.Workspace.Name, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false } && result.Data is BookingDto updated && updated.IsCancelled)
+            RemoveFromUpcoming(updated.Id);
+    }
+
+    private void UpdateBooking(BookingDto updated)
+    {
+        var upcomingIdx = _upcoming.FindIndex(b => b.Id == updated.Id);
+        if (upcomingIdx >= 0) _upcoming[upcomingIdx] = updated;
+        var pastIdx = _past.FindIndex(b => b.Id == updated.Id);
+        if (pastIdx >= 0) _past[pastIdx] = updated;
+        StateHasChanged();
+    }
+
+    private void RemoveFromUpcoming(int bookingId)
+    {
+        _upcoming.RemoveAll(b => b.Id == bookingId);
+        StateHasChanged();
+    }
+}

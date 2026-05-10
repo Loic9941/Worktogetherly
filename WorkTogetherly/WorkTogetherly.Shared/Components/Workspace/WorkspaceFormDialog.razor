@@ -1,0 +1,317 @@
+@using WorkTogetherly.Shared.Models
+@using WorkTogetherly.Shared.Services
+@inject WorkspaceService WorkspaceService
+@inject IGeolocationService GeolocationService
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" md="7">
+                <MudTextField @bind-Value="_model.Name"
+                              Label="Nom de l'espace *"
+                              Variant="Variant.Outlined"
+                              MaxLength="200"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="8" md="3">
+                <MudNumericField @bind-Value="_model.Capacity"
+                                 Label="Capacité *"
+                                 Variant="Variant.Outlined"
+                                 Min="1" />
+            </MudItem>
+            <MudItem xs="4" md="2" Class="d-flex align-center">
+                <MudSwitch @bind-Value="_model.IsActive"
+                           Label="Actif"
+                           Color="Color.Primary" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Description"
+                              Label="Description *"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              MaxLength="2000"
+                              FullWidth="true" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudGrid Spacing="1">
+                    <MudItem xs="10" sm="11">
+                        @if (_locating || _fetchingSuggestions)
+                        {
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:3px; border-radius:2px;" />
+                        }
+                        <MudAutocomplete T="CitySuggestion"
+                                 Label="Adresse *"
+                                 Placeholder="Ex: Rue de la Loi 16, Bruxelles..."
+                                 Value="_selectedAddressSuggestion"
+                                 ValueChanged="OnAddressSelected"
+                                 SearchFunc="FetchAddressSuggestionsAsync"
+                                 ToStringFunc="@(s => s?.DisplayName ?? string.Empty)"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Filled.LocationOn"
+                                 Variant="Variant.Outlined"
+                                 MinCharacters="3"
+                                 DebounceInterval="400"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="false"
+                                 Error="_addressError"
+                                 ErrorText="Veuillez sélectionner une adresse dans la liste."
+                                 FullWidth="true" />
+                    </MudItem>
+                    <MudItem xs="2" sm="1" Class="d-flex align-center justify-center">
+                        <MudTooltip Text="Utiliser ma position">
+                            <MudIconButton Icon="@Icons.Material.Filled.MyLocation"
+                                           Color="Color.Primary"
+                                           OnClick="UseMyLocationAsync"
+                                           Disabled="_locating" />
+                        </MudTooltip>
+                    </MudItem>
+                </MudGrid>
+            </MudItem>
+
+            @if (AllMaterials.Count > 0 || AllRules.Count > 0)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mb-3">Équipements et caractéristiques</MudText>
+
+                    @if (AllMaterials.Count > 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">Matériel</MudText>
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            @foreach (var material in AllMaterials)
+                            {
+                                var item = _materialItems[material.Id];
+                                @if (item.Enabled)
+                                {
+                                    <div class="d-flex align-center mud-chip mud-chip-filled"
+                                         style="background-color: var(--mud-palette-primary); color: white; border-radius: 16px; padding: 0 4px 0 12px; height: 32px; gap: 4px;">
+                                        <span style="font-size:0.8125rem; white-space:nowrap">@material.Name</span>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                                                       Size="Size.Small"
+                                                       Style="color:white; width:24px; height:24px;"
+                                                       OnClick="@(() => DecrementMaterial(item))" />
+                                        <span style="font-size:0.8125rem; min-width:16px; text-align:center">@item.Quantity</span>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                                       Size="Size.Small"
+                                                       Style="color:white; width:24px; height:24px;"
+                                                       OnClick="@(() => item.Quantity++)" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <MudChip T="string"
+                                             Color="Color.Default"
+                                             Variant="Variant.Outlined"
+                                             OnClick="@(() => ToggleMaterial(item))"
+                                             Style="cursor:pointer">
+                                        @material.Name
+                                    </MudChip>
+                                }
+                            }
+                        </div>
+                    }
+
+                    @if (AllRules.Count > 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">Règles</MudText>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var rule in AllRules)
+                            {
+                                var item = _ruleItems[rule.Id];
+                                <MudChip T="string"
+                                         Color="@(item.Enabled ? Color.Primary : Color.Default)"
+                                         Variant="@(item.Enabled ? Variant.Filled : Variant.Outlined)"
+                                         OnClick="@(() => item.Enabled = !item.Enabled)"
+                                         Style="cursor:pointer">
+                                    @rule.Name
+                                </MudChip>
+                            }
+                        </div>
+                    }
+                </MudItem>
+            }
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_isSubmitting">Annuler</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="SubmitAsync"
+                   Disabled="_isSubmitting"
+                   StartIcon="@(_isSubmitting ? null : Icons.Material.Filled.Save)">
+            @if (_isSubmitting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                @("Enregistrement...")
+            }
+            else
+            {
+                @("Enregistrer")
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public WorkspaceDto? Workspace { get; set; }
+    [Parameter] public List<MaterialDto> AllMaterials { get; set; } = [];
+    [Parameter] public List<RuleDto> AllRules { get; set; } = [];
+
+    private WorkspaceFormModel _model = new();
+    private Dictionary<int, MaterialFormItem> _materialItems = [];
+    private Dictionary<int, RuleFormItem> _ruleItems = [];
+    private bool _isSubmitting;
+    private string? _errorMessage;
+    private CitySuggestion? _selectedAddressSuggestion;
+    private bool _addressError;
+    private bool _locating;
+    private bool _fetchingSuggestions;
+    private CancellationTokenSource? _suggestionsCts;
+
+    protected override void OnInitialized()
+    {
+        _materialItems = AllMaterials.ToDictionary(
+            m => m.Id,
+            m => new MaterialFormItem { MaterialId = m.Id });
+
+        _ruleItems = AllRules.ToDictionary(
+            r => r.Id,
+            r => new RuleFormItem { RuleId = r.Id });
+
+        if (Workspace is not null)
+        {
+            _model = new WorkspaceFormModel
+            {
+                Name = Workspace.Name,
+                Description = Workspace.Description,
+                Address = Workspace.Address,
+                Latitude = Workspace.Latitude,
+                Longitude = Workspace.Longitude,
+                Capacity = Workspace.Capacity,
+                IsActive = Workspace.IsActive
+            };
+
+            foreach (var wm in Workspace.Materials)
+            {
+                if (_materialItems.TryGetValue(wm.MaterialId, out var item))
+                {
+                    item.Enabled = true;
+                    item.Quantity = wm.Quantity;
+                }
+            }
+
+            foreach (var wr in Workspace.Rules)
+            {
+                if (_ruleItems.TryGetValue(wr.RuleId, out var item))
+                    item.Enabled = true;
+            }
+
+            _selectedAddressSuggestion = new CitySuggestion(Workspace.Address, Workspace.Latitude, Workspace.Longitude);
+        }
+    }
+
+    private async Task UseMyLocationAsync()
+    {
+        _locating = true;
+        StateHasChanged();
+        var coords = await GeolocationService.GetCurrentLocationAsync();
+        if (coords.HasValue)
+        {
+            var suggestion = await WorkspaceService.ReverseGeocodeAsync(coords.Value.Latitude, coords.Value.Longitude);
+            if (suggestion is not null)
+                OnAddressSelected(suggestion);
+        }
+        _locating = false;
+    }
+
+    private async Task<IEnumerable<CitySuggestion>> FetchAddressSuggestionsAsync(string input, CancellationToken ct)
+    {
+        _suggestionsCts?.Cancel();
+        _suggestionsCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _fetchingSuggestions = true;
+        StateHasChanged();
+        try { return await WorkspaceService.GetCitySuggestionsAsync(input, _suggestionsCts.Token); }
+        catch (OperationCanceledException) { return []; }
+        finally { _fetchingSuggestions = false; }
+    }
+
+    private void OnAddressSelected(CitySuggestion? suggestion)
+    {
+        _selectedAddressSuggestion = suggestion;
+        _addressError = false;
+        if (suggestion is not null)
+        {
+            _model.Address = suggestion.DisplayName;
+            _model.Latitude = suggestion.Latitude;
+            _model.Longitude = suggestion.Longitude;
+        }
+        else
+        {
+            _model.Address = string.Empty;
+            _model.Latitude = 0;
+            _model.Longitude = 0;
+        }
+    }
+
+    private void ToggleMaterial(MaterialFormItem item)
+    {
+        item.Enabled = !item.Enabled;
+        if (item.Enabled && item.Quantity < 1)
+            item.Quantity = 1;
+    }
+
+    private void DecrementMaterial(MaterialFormItem item)
+    {
+        if (item.Quantity > 1)
+            item.Quantity--;
+        else
+            item.Enabled = false;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        if (_selectedAddressSuggestion is null || (_model.Latitude == 0 && _model.Longitude == 0))
+        {
+            _addressError = true;
+            return;
+        }
+
+        if (_isSubmitting) return;
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        _model.Materials = _materialItems.Values.Where(i => i.Enabled).ToList();
+        _model.Rules = _ruleItems.Values.Where(i => i.Enabled).ToList();
+
+        try
+        {
+            (WorkspaceDto? result, string? error) response;
+
+            if (Workspace is null)
+                response = await WorkspaceService.CreateAsync(_model);
+            else
+                response = await WorkspaceService.UpdateAsync(Workspace.Id, _model);
+
+            if (response.result is not null)
+                MudDialog.Close(DialogResult.Ok(response.result));
+            else
+                _errorMessage = response.error ?? "Une erreur est survenue";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

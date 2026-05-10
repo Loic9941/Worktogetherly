@@ -1,0 +1,33 @@
+.status-bar-safe-area {
+    display: none;
+}
+
+/* Fix MudBlazor popovers (MudAutocomplete, MudDatePicker...) in MAUI BlazorWebView.
+   MudLayout sets overflow on its children which creates a new stacking context and
+   breaks position:fixed used by popovers. Forcing overflow:visible restores viewport-
+   relative positioning. */
+.mud-layout {
+    overflow: visible !important;
+}
+
+.mud-main-content {
+    overflow: visible !important;
+}
+
+/* iOS safe area */
+@supports (-webkit-touch-callout: none) {
+    .status-bar-safe-area {
+        display: flex;
+        position: sticky;
+        top: 0;
+        height: env(safe-area-inset-top);
+        background-color: #f7f7f7;
+        width: 100%;
+        z-index: 1;
+    }
+
+    .flex-column, .navbar-brand {
+        padding-left: env(safe-area-inset-left);
+    }
+}
+

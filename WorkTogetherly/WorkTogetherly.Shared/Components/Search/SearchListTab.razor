@@ -1,0 +1,47 @@
+@inject IDialogService DialogService
+
+@if (Workspaces.Count == 0)
+{
+    <MudAlert Severity="Severity.Warning">
+        Aucun espace de travail trouvé. Essayez d'élargir votre recherche.
+    </MudAlert>
+}
+else
+{
+    <MudGrid Spacing="4" Class="pa-2">
+        @foreach (var workspace in Workspaces)
+        {
+            <MudItem xs="12" sm="@(SingleColumn ? 12 : 6)" md="@(SingleColumn ? 12 : 4)">
+                <WorkspaceSearchCard Workspace="workspace" OnSelected="@(id => HandleCardClickAsync(workspace, id))" />
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public List<WorkspaceSearchResultDto> Workspaces { get; set; } = [];
+    [Parameter] public DateOnly SearchDate { get; set; }
+    [Parameter] public bool SingleColumn { get; set; }
+    [Parameter] public EventCallback<WorkspaceSearchResultDto> OnWorkspaceFocused { get; set; }
+
+    private async Task HandleCardClickAsync(WorkspaceSearchResultDto workspace, int workspaceId)
+    {
+        if (OnWorkspaceFocused.HasDelegate)
+            await OnWorkspaceFocused.InvokeAsync(workspace);
+        await OpenDetailAsync(workspaceId);
+    }
+
+    private async Task OpenDetailAsync(int workspaceId)
+    {
+        var workspace = Workspaces.FirstOrDefault(w => w.Id == workspaceId);
+        var parameters = new DialogParameters<WorkspaceDetailDialog>
+        {
+            { x => x.WorkspaceId, workspaceId },
+            { x => x.WorkspaceName, workspace?.Name ?? string.Empty },
+            { x => x.SearchDate, SearchDate },
+            { x => x.DistanceKm, workspace?.DistanceKm }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        await DialogService.ShowAsync<WorkspaceDetailDialog>(workspace?.Name ?? "Espace de travail", parameters, options);
+    }
+}

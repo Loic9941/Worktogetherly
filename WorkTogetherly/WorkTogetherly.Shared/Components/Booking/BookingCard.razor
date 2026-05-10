@@ -1,0 +1,40 @@
+@using WorkTogetherly.Shared.Models
+
+<MudCard Elevation="2" Style="cursor:pointer" @onclick="() => OnClick.InvokeAsync(Booking)">
+    <MudCardContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.subtitle1"><b>@Booking.Workspace.Name</b></MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@Booking.Workspace.Address</MudText>
+            </MudStack>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                @if (Booking.HasReview)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" Title="Avis déposé" />
+                }
+                @if (Booking.IsCancelled)
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled">Annulée</MudChip>
+                }
+            </MudStack>
+        </MudStack>
+        <MudDivider Class="my-2" />
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Color="Color.Default" />
+            <MudText Typo="Typo.body2">@Booking.SlotStart.ToString("dddd d MMMM yyyy", new System.Globalization.CultureInfo("fr-FR"))</MudText>
+        </MudStack>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mt-1">
+            <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Color="Color.Default" />
+            <MudText Typo="Typo.body2">@Booking.SlotStart.ToString("HH:mm") – @Booking.SlotEnd.ToString("HH:mm")</MudText>
+        </MudStack>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mt-1">
+            <MudIcon Icon="@Icons.Material.Filled.DirectionsWalk" Size="Size.Small" Color="Color.Default" />
+            <MudText Typo="Typo.body2">Arrivée prévue à @Booking.ArrivalTime.ToString("HH:mm")</MudText>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public BookingDto Booking { get; set; } = null!;
+    [Parameter] public EventCallback<BookingDto> OnClick { get; set; }
+}

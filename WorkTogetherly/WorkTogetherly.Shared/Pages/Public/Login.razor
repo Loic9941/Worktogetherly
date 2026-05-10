@@ -1,0 +1,93 @@
+﻿@page "/login"
+@using MudBlazor
+@using WorkTogetherly.Shared.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject IFormFactor FormFactor
+@inject AuthenticationStateProvider AuthStateProvider
+
+
+<PageTitle>Connexion</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall">
+    <MudCard Elevation="10">
+        <MudCardContent>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" Class="d-flex justify-start">
+                    <img src="_content/WorkTogetherly.Shared/images/full_logo.png" alt="WorkTogetherly" style="max-width: 260px; width: 100%;" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h4">Connexion</MudText>
+                    <MudText>Le télétravail, ensemble</MudText>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_email" Label="Email"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_password" Label="Mot de passe"
+                                  Variant="Variant.Outlined" InputType="InputType.Password" />
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+        <MudCardActions Class="px-4">
+            <MudButton Variant="Variant.Filled" FullWidth Color="Color.Tertiary"
+                       OnClick="SubmitAsync" Disabled="_isSubmitting">
+                Se connecter
+            </MudButton>
+        </MudCardActions>
+        <MudCardActions Class="px-4">
+            <MudText>Pas encore de compte ? </MudText><MudLink Color="Color.Default" Href="/register">&nbsp;S'inscrire</MudLink>
+        </MudCardActions>
+        <MudCardActions Class="px-4 mb-4">
+            <MudLink Color="Color.Default" Href="/forgot-password">Mot de passe oublié ?</MudLink>
+        </MudCardActions>
+    </MudCard>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <MudText Color="Color.Error" Class="mt-4">@_message</MudText>
+    }
+    <!--App running on <em>@factor</em> using <em>@platform</em>.-->
+</MudContainer>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState? state = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+            Navigation.NavigateTo("/search", replace: true);
+    }
+
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private string? _message;
+    private bool _isSubmitting;
+    private string factor => FormFactor.GetFormFactor();
+    private string platform => FormFactor.GetPlatform();
+
+    private async Task SubmitAsync()
+    {
+        if (_isSubmitting) return;
+        _isSubmitting = true;
+        _message = null;
+
+        try
+        {
+            var success = await AuthService.LoginAsync(_email, _password);
+            if (success)
+                Navigation.NavigateTo("/search");
+            else
+                _message = "Email ou mot de passe incorrect.";
+        }
+        catch (Exception ex)
+        {
+            _message = $"Erreur : {ex.Message}";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

@@ -1,0 +1,95 @@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div id="@_mapId" style="height: @Height; width: 100%; border-radius: 12px;"></div>
+
+@code {
+    [Parameter] public List<WorkspaceSearchResultDto> Workspaces { get; set; } = [];
+    [Parameter] public string Height { get; set; } = "500px";
+    [Parameter] public double CenterLatitude { get; set; } = 48.8566;
+    [Parameter] public double CenterLongitude { get; set; } = 2.3522;
+    [Parameter] public DateOnly SearchDate { get; set; }
+    [Parameter] public EventCallback<int> OnWorkspaceSelected { get; set; }
+    [Parameter] public EventCallback<WorkspaceSearchRequest> OnMapMoved { get; set; }
+    [Parameter] public WorkspaceSearchResultDto? FocusedWorkspace { get; set; }
+
+    private readonly string _mapId = $"leaflet-map-{Guid.NewGuid():N}";
+    private DotNetObjectReference<LeafletMap>? _dotNetRef;
+    private bool _mapInitialized;
+    private double _renderedLat;
+    private double _renderedLng;
+    private int? _lastFocusedWorkspaceId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("leafletInterop.initMap", _mapId, CenterLatitude, CenterLongitude, 12, _dotNetRef);
+            _renderedLat = CenterLatitude;
+            _renderedLng = CenterLongitude;
+            _mapInitialized = true;
+            await UpdateMarkersAsync();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_mapInitialized) return;
+
+        // Only re-center when the search origin changed (bar search), not when results
+        // come back from a map-move search (the map is already at the right position).
+        if (CenterLatitude != _renderedLat || CenterLongitude != _renderedLng)
+        {
+            _renderedLat = CenterLatitude;
+            _renderedLng = CenterLongitude;
+            await JS.InvokeVoidAsync("leafletInterop.setView", _mapId, CenterLatitude, CenterLongitude, 12);
+        }
+
+        await UpdateMarkersAsync();
+
+        if (FocusedWorkspace is not null && FocusedWorkspace.Id != _lastFocusedWorkspaceId)
+        {
+            _lastFocusedWorkspaceId = FocusedWorkspace.Id;
+            await JS.InvokeVoidAsync("leafletInterop.panTo", _mapId, FocusedWorkspace.Latitude, FocusedWorkspace.Longitude);
+        }
+    }
+
+    private async Task UpdateMarkersAsync()
+    {
+        if (!_mapInitialized) return;
+        var markerData = Workspaces.Select(w => new { w.Id, w.Name, w.Latitude, w.Longitude }).ToArray();
+        await JS.InvokeVoidAsync("leafletInterop.setMarkers", _mapId, markerData, _dotNetRef);
+    }
+
+    [JSInvokable]
+    public async Task OnMarkerClicked(int workspaceId)
+    {
+        await OnWorkspaceSelected.InvokeAsync(workspaceId);
+    }
+
+    [JSInvokable]
+    public async Task NotifyMapMoved(double lat, double lng, double radiusKm)
+    {
+        // Record the map's new position immediately so OnParametersSetAsync won't
+        // call setView when the search results come back with these same coordinates.
+        _renderedLat = lat;
+        _renderedLng = lng;
+
+        var request = new WorkspaceSearchRequest
+        {
+            Latitude = lat,
+            Longitude = lng,
+            RadiusKm = radiusKm,
+            Date = SearchDate
+        };
+        await OnMapMoved.InvokeAsync(request);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_mapInitialized)
+            await JS.InvokeVoidAsync("leafletInterop.destroyMap", _mapId);
+        _dotNetRef?.Dispose();
+    }
+}
