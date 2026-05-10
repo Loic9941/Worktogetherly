@@ -13,6 +13,7 @@
 <MudContainer MaxWidth="MaxWidth.ExtraSmall">
     <MudCard Elevation="10">
         <MudCardContent>
+            <MudForm @ref="_form">
             <MudGrid Spacing="3">
                 <MudItem xs="12" Class="d-flex justify-start">
                     <img src="_content/WorkTogetherly.Shared/images/full_logo.png" alt="WorkTogetherly" style="max-width: 260px; width: 100%;" />
@@ -23,13 +24,16 @@
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_email" Label="Email"
-                                  Variant="Variant.Outlined" />
+                                  Variant="Variant.Outlined"
+                                  Required="true" RequiredError="L'email est requis" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_password" Label="Mot de passe"
-                                  Variant="Variant.Outlined" InputType="InputType.Password" />
+                                  Variant="Variant.Outlined" InputType="InputType.Password"
+                                  Required="true" RequiredError="Le mot de passe est requis" />
                 </MudItem>
             </MudGrid>
+            </MudForm>
         </MudCardContent>
         <MudCardActions Class="px-4">
             <MudButton Variant="Variant.Filled" FullWidth Color="Color.Tertiary"
@@ -60,6 +64,7 @@
             Navigation.NavigateTo("/search", replace: true);
     }
 
+    private MudForm _form = null!;
     private string _email = string.Empty;
     private string _password = string.Empty;
     private string? _message;
@@ -69,6 +74,8 @@
 
     private async Task SubmitAsync()
     {
+        await _form.Validate();
+        if (!_form.IsValid) return;
         if (_isSubmitting) return;
         _isSubmitting = true;
         _message = null;

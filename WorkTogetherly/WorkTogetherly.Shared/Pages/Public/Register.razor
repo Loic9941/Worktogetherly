@@ -11,6 +11,7 @@
 <MudContainer MaxWidth="MaxWidth.ExtraSmall">
     <MudCard Elevation="10" Class="mt-2">
         <MudCardContent>
+            <MudForm @ref="_form">
             <MudGrid Spacing="3">
                 <MudItem xs="12" Class="d-flex justify-start">
                     <img src="_content/WorkTogetherly.Shared/images/full_logo.png" alt="WorkTogetherly" style="max-width: 260px; width: 100%;" />
@@ -21,29 +22,35 @@
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_model.FirstName"
-                                  Label="Prénom" Variant="Variant.Outlined" />
+                                  Label="Prénom" Variant="Variant.Outlined"
+                                  Required="true" RequiredError="Le prénom est requis" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_model.LastName"
-                                  Label="Nom de famille" Variant="Variant.Outlined" />
+                                  Label="Nom de famille" Variant="Variant.Outlined"
+                                  Required="true" RequiredError="Le nom est requis" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_model.Email"
-                                  Label="Email" Variant="Variant.Outlined" />
+                                  Label="Email" Variant="Variant.Outlined"
+                                  Required="true" RequiredError="L'email est requis" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_model.Password"
                                   Label="Mot de passe" Variant="Variant.Outlined"
-                                  InputType="InputType.Password" />
+                                  InputType="InputType.Password"
+                                  Required="true" RequiredError="Le mot de passe est requis" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_confirmPassword"
                                   Label="Confirmer le mot de passe" Variant="Variant.Outlined"
                                   InputType="InputType.Password"
+                                  Required="true" RequiredError="La confirmation est requise"
                                   Error="@_passwordMismatch"
                                   ErrorText="Les mots de passe ne correspondent pas" />
                 </MudItem>
             </MudGrid>
+            </MudForm>
         </MudCardContent>
         <MudCardActions Class="px-4 mb-4">
             <MudButton Variant="Variant.Filled" Color="Color.Tertiary" FullWidth
@@ -70,6 +77,7 @@
 </MudContainer>
 
 @code {
+    private MudForm _form = null!;
     private RegisterModel _model = new();
     private string? _message;
     private bool _isSubmitting;
@@ -78,6 +86,8 @@
 
     private async Task SubmitAsync()
     {
+        await _form.Validate();
+        if (!_form.IsValid) return;
         if (_isSubmitting) return;
         if (_model.Password != _confirmPassword)
         {

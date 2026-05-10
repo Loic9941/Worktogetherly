@@ -101,7 +101,7 @@
                                         Réservé
                                     </MudChip>
                                 }
-                                else if (!slot.IsInPast && !_details.IsOwner && slot.AvailablePlaces > 0)
+                                else
                                 {
                                     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                                OnClick="@(() => OpenBookingConfirmAsync(slot.Id, slot.StartDateTime, slot.EndDateTime, slot.MaterialAvailabilities))">
