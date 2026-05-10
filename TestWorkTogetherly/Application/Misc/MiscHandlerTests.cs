@@ -131,7 +131,7 @@ public class MiscHandlerTests
         var result = await handler.Handle(new UpdateSlotCommand(1, 1, OwnerId, FutureStart, FutureEnd, 5), default);
 
         result.IsError.Should().BeTrue();
-        result.FirstError.Code.Should().Be(AppSlotErrors.AlreadyStarted.Code);
+        result.FirstError.Code.Should().Be(DomainSlotErrors.AlreadyStarted.Code);
     }
 
     [Fact]
