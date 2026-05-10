@@ -15,8 +15,5 @@ namespace WorkTogetherly.Application.Errors
         public static Error Overlapping => Error.Conflict(
             code: "Slot.Overlapping",
             description: "Ce créneau chevauche un créneau existant sur ce workspace");
-        public static Error AlreadyStarted => Error.Conflict(
-            code: "Slot.AlreadyStarted",
-            description: "Impossible de modifier ou annuler un créneau déjà commencé");
     }
 }

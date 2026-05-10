@@ -31,7 +31,7 @@ namespace WorkTogetherly.Application.Slots.GetSlotsByWorkspace
 
             // Filter out past and cancelled slots, then map to results
             var results = slots
-                .Where(s => s.StartDateTime >= now && !s.IsCancelled)
+                .Where(s => !s.HasStarted(now) && !s.IsCancelled)
                 .Select(SlotMapper.ToResult)
                 .ToList();
 

@@ -39,13 +39,13 @@ namespace WorkTogetherly.Application.Workspaces.GetWorkspaceDetails
 
             var slotResults = slotsForDate.Select(s =>
             {
-                var availablePlaces = SlotAvailabilityCalculator.AvailablePlaces(s);
-                var userHasBooked = s.Bookings.Any(b => !b.IsCancelled && b.UserId == request.UserId);
-                var isInPast = s.StartDateTime < now;
+                var availablePlaces = s.AvailablePlaces();
+                var userHasBooked = s.IsAlreadyBookedBy(request.UserId);
+                var isInPast = s.HasStarted(now);
 
                 var materialAvailabilities = workspaceMaterials.Select(wm =>
                 {
-                    var available = SlotAvailabilityCalculator.AvailableMaterialQuantity(s, wm);
+                    var available = s.AvailableMaterialQuantity(wm);
                     return new MaterialAvailabilityResult(wm.MaterialId, wm.Material.Name, wm.Quantity, available);
                 }).ToList();
 

@@ -19,5 +19,9 @@ namespace WorkTogetherly.Domain.Errors
         public static Error InvalidCapacity => Error.Validation(
             code: "Slot.InvalidCapacity",
             description: "La capacité doit être supérieure à 0");
+
+        public static Error AlreadyStarted => Error.Conflict(
+            code: "Slot.AlreadyStarted",
+            description: "Impossible de modifier ou annuler un créneau déjà commencé");
     }
 }

@@ -66,7 +66,7 @@ public class SlotTests
         var newStart = Start.AddHours(1);
         var newEnd = End.AddHours(1);
 
-        var result = slot.Update(newStart, newEnd, 10);
+        var result = slot.Update(newStart, newEnd, 10, Start.AddHours(-1));
 
         result.IsError.Should().BeFalse();
         slot.StartDateTime.Should().Be(newStart);
@@ -78,7 +78,7 @@ public class SlotTests
     {
         var slot = Slot.Create(1, Start, End, 5).Value;
 
-        var result = slot.Update(End, Start, 5);
+        var result = slot.Update(End, Start, 5, Start.AddHours(-1));
 
         result.IsError.Should().BeTrue();
         result.FirstError.Should().Be(SlotErrors.InvalidTimeRange);
@@ -89,10 +89,21 @@ public class SlotTests
     {
         var slot = Slot.Create(1, Start, End, 5).Value;
 
-        var result = slot.Update(Start, End, 0);
+        var result = slot.Update(Start, End, 0, Start.AddHours(-1));
 
         result.IsError.Should().BeTrue();
         result.FirstError.Should().Be(SlotErrors.InvalidCapacity);
+    }
+
+    [Fact]
+    public void Update_WhenSlotAlreadyStarted_ReturnsAlreadyStarted()
+    {
+        var slot = Slot.Create(1, Start, End, 5).Value;
+
+        var result = slot.Update(Start, End, 5, Start.AddMinutes(1));
+
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().Be(SlotErrors.AlreadyStarted);
     }
 
     // ── Cancel ────────────────────────────────────────────────────────────────
@@ -102,7 +113,7 @@ public class SlotTests
     {
         var slot = Slot.Create(1, Start, End, 5).Value;
 
-        var result = slot.Cancel();
+        var result = slot.Cancel(Start.AddHours(-1));
 
         result.IsError.Should().BeFalse();
         slot.IsCancelled.Should().BeTrue();
@@ -112,12 +123,23 @@ public class SlotTests
     public void Cancel_WhenAlreadyCancelled_ReturnsAlreadyCancelled()
     {
         var slot = Slot.Create(1, Start, End, 5).Value;
-        slot.Cancel();
+        slot.Cancel(Start.AddHours(-1));
 
-        var result = slot.Cancel();
+        var result = slot.Cancel(Start.AddHours(-1));
 
         result.IsError.Should().BeTrue();
         result.FirstError.Should().Be(SlotErrors.AlreadyCancelled);
+    }
+
+    [Fact]
+    public void Cancel_WhenSlotAlreadyStarted_ReturnsAlreadyStarted()
+    {
+        var slot = Slot.Create(1, Start, End, 5).Value;
+
+        var result = slot.Cancel(Start.AddMinutes(1));
+
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().Be(SlotErrors.AlreadyStarted);
     }
 
     // ── HasStarted ────────────────────────────────────────────────────────────
@@ -271,6 +293,81 @@ public class SlotTests
         result.Should().BeEmpty();
     }
 
+    // ── AvailablePlaces ───────────────────────────────────────────────────────
+
+    [Fact]
+    public void AvailablePlaces_WithNoBookings_ReturnsFullCapacity()
+    {
+        var slot = Slot.Create(1, Start, End, 3).Value;
+
+        slot.AvailablePlaces().Should().Be(3);
+    }
+
+    [Fact]
+    public void AvailablePlaces_WithActiveBookings_ReturnsRemainingCapacity()
+    {
+        var slot = Slot.Create(1, Start, End, 3).Value;
+        slot.Bookings.Add(CreateBookingForSlot(Guid.NewGuid()));
+
+        slot.AvailablePlaces().Should().Be(2);
+    }
+
+    [Fact]
+    public void AvailablePlaces_CancelledBookingsNotCounted()
+    {
+        var slot = Slot.Create(1, Start, End, 2).Value;
+        slot.Bookings.Add(CreateBookingForSlot(Guid.NewGuid(), cancelled: true));
+
+        slot.AvailablePlaces().Should().Be(2);
+    }
+
+    // ── AvailableMaterialQuantity ─────────────────────────────────────────────
+
+    [Fact]
+    public void AvailableMaterialQuantity_WithNoBookings_ReturnsTotalQuantity()
+    {
+        var slot = Slot.Create(1, Start, End, 5).Value;
+        var wm = CreateWorkspaceMaterial(materialId: 1, quantity: 3);
+
+        slot.AvailableMaterialQuantity(wm).Should().Be(3);
+    }
+
+    [Fact]
+    public void AvailableMaterialQuantity_WithActiveBooking_ReturnsReducedQuantity()
+    {
+        var slot = Slot.Create(1, Start, End, 5).Value;
+        var wm = CreateWorkspaceMaterial(materialId: 1, quantity: 3);
+        var booking = CreateBookingForSlot(Guid.NewGuid());
+        AddBookingMaterial(booking, materialId: 1);
+        slot.Bookings.Add(booking);
+
+        slot.AvailableMaterialQuantity(wm).Should().Be(2);
+    }
+
+    [Fact]
+    public void AvailableMaterialQuantity_CancelledBookingNotCounted()
+    {
+        var slot = Slot.Create(1, Start, End, 5).Value;
+        var wm = CreateWorkspaceMaterial(materialId: 1, quantity: 2);
+        var booking = CreateBookingForSlot(Guid.NewGuid(), cancelled: true);
+        AddBookingMaterial(booking, materialId: 1);
+        slot.Bookings.Add(booking);
+
+        slot.AvailableMaterialQuantity(wm).Should().Be(2);
+    }
+
+    [Fact]
+    public void AvailableMaterialQuantity_NeverGoesNegative()
+    {
+        var slot = Slot.Create(1, Start, End, 5).Value;
+        var wm = CreateWorkspaceMaterial(materialId: 1, quantity: 1);
+        slot.Bookings.Add(CreateBookingForSlot(Guid.NewGuid()));
+        slot.Bookings.Add(CreateBookingForSlot(Guid.NewGuid()));
+        foreach (var b in slot.Bookings) AddBookingMaterial(b, materialId: 1);
+
+        slot.AvailableMaterialQuantity(wm).Should().Be(0);
+    }
+
     private static Booking CreateBookingForSlot(Guid userId, bool cancelled = false)
     {
         var booking = (Booking)Activator.CreateInstance(typeof(Booking), nonPublic: true)!;
@@ -278,5 +375,20 @@ public class SlotTests
         if (cancelled)
             typeof(Booking).GetProperty("CancelledAt")!.SetValue(booking, (DateTime?)DateTime.UtcNow.AddHours(-1));
         return booking;
+    }
+
+    private static WorkspaceMaterial CreateWorkspaceMaterial(int materialId, int quantity)
+    {
+        var wm = (WorkspaceMaterial)Activator.CreateInstance(typeof(WorkspaceMaterial), nonPublic: true)!;
+        typeof(WorkspaceMaterial).GetProperty("MaterialId")!.SetValue(wm, materialId);
+        typeof(WorkspaceMaterial).GetProperty("Quantity")!.SetValue(wm, quantity);
+        return wm;
+    }
+
+    private static void AddBookingMaterial(Booking booking, int materialId)
+    {
+        var bm = (BookingMaterial)Activator.CreateInstance(typeof(BookingMaterial), nonPublic: true)!;
+        typeof(BookingMaterial).GetProperty("MaterialId")!.SetValue(bm, materialId);
+        booking.BookingMaterials.Add(bm);
     }
 }

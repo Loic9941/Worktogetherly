@@ -28,7 +28,7 @@ namespace WorkTogetherly.Application.Bookings.CreateBooking
             if (slot is null)
                 return SlotErrors.NotFound;
 
-            if (slot.StartDateTime < _clock.UtcNow)
+            if (slot.HasStarted(_clock.UtcNow))
                 return AppSlotErrors.InThePast;
 
             var workspace = await _workspaceRepository.GetByIdAsync(slot.WorkspaceId, cancellationToken);

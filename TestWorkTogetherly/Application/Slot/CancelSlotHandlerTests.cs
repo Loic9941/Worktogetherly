@@ -4,7 +4,6 @@ using TestWorkTogetherly.Helpers;
 using WorkTogetherly.Application.Slots.CancelSlot;
 using WorkTogetherly.Application.Interfaces;
 using WorkTogetherly.Domain.Interfaces;
-using AppSlotErrors = WorkTogetherly.Application.Errors.SlotErrors;
 using AppWorkspaceErrors = WorkTogetherly.Application.Errors.WorkspaceErrors;
 using DomainSlotErrors = WorkTogetherly.Domain.Errors.SlotErrors;
 using DomainWorkspaceErrors = WorkTogetherly.Domain.Errors.WorkspaceErrors;
@@ -78,7 +77,7 @@ public class CancelSlotHandlerTests
         var result = await _handler.Handle(new CancelSlotCommand(1, 1, UserId), default);
 
         result.IsError.Should().BeTrue();
-        result.FirstError.Code.Should().Be(AppSlotErrors.AlreadyStarted.Code);
+        result.FirstError.Code.Should().Be(DomainSlotErrors.AlreadyStarted.Code);
     }
 
     [Fact]

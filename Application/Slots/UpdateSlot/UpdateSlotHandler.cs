@@ -32,19 +32,13 @@ namespace WorkTogetherly.Application.Slots.UpdateSlot
             if (workspace.UserId != request.UserId)
                 return AppErrors.WorkspaceErrors.Unauthorized;
 
-            // Validate that the new slot does not overlap with existing slots in the same workspace
             var existingSlots = await _slotRepository.GetByWorkspaceIdAsync(request.WorkspaceId, cancellationToken);
             bool overlaps = existingSlots.Any(s =>
                 s.Id != request.SlotId && s.OverlapsWith(request.StartDateTime, request.EndDateTime));
             if (overlaps)
                 return AppErrors.SlotErrors.Overlapping;
 
-            // Validate that the slot has not already started
-            if (slot.HasStarted(_clock.UtcNow))
-                return AppErrors.SlotErrors.AlreadyStarted;
-
-            // Update the slot and handle potential errors from update logic
-            var updateResult = slot.Update(request.StartDateTime, request.EndDateTime, request.Capacity);
+            var updateResult = slot.Update(request.StartDateTime, request.EndDateTime, request.Capacity, _clock.UtcNow);
             if (updateResult.IsError)
                 return updateResult.Errors;
 

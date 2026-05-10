@@ -39,10 +39,12 @@ public class Slot : AggregateRoot
         };
     }
 
-    public ErrorOr<Success> Update(DateTime startDateTime, DateTime endDateTime, int capacity)
+    public ErrorOr<Success> Update(DateTime startDateTime, DateTime endDateTime, int capacity, DateTime now)
     {
         if (IsCancelled)
             return SlotErrors.AlreadyCancelled;
+        if (HasStarted(now))
+            return SlotErrors.AlreadyStarted;
         if (startDateTime >= endDateTime)
             return SlotErrors.InvalidTimeRange;
         if (capacity <= 0)
@@ -55,17 +57,34 @@ public class Slot : AggregateRoot
         return Result.Success;
     }
 
-    public ErrorOr<Success> Cancel()
+    public ErrorOr<Success> Cancel(DateTime now)
     {
         if (IsCancelled)
             return SlotErrors.AlreadyCancelled;
+        if (HasStarted(now))
+            return SlotErrors.AlreadyStarted;
 
-        CancelledAt = DateTime.UtcNow;
+        CancelledAt = now;
         RaiseDomainEvent(new SlotCancelledEvent(Id, WorkspaceId));
         return Result.Success;
     }
 
     public bool HasStarted(DateTime now) => StartDateTime <= now;
+
+    public int AvailablePlaces()
+    {
+        var active = Bookings.Count(b => !b.IsCancelled);
+        return Capacity - active;
+    }
+
+    public int AvailableMaterialQuantity(WorkspaceMaterial workspaceMaterial)
+    {
+        var booked = Bookings
+            .Where(b => !b.IsCancelled)
+            .SelectMany(b => b.BookingMaterials)
+            .Count(bm => bm.MaterialId == workspaceMaterial.MaterialId);
+        return Math.Max(0, workspaceMaterial.Quantity - booked);
+    }
 
     public bool OverlapsWith(DateTime start, DateTime end) => start < EndDateTime && StartDateTime < end;
 
