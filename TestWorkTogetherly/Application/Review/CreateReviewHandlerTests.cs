@@ -72,8 +72,8 @@ public class CreateReviewHandlerTests
     public async Task Handle_WhenReviewAlreadyExistsForWorkspace_ReturnsAlreadyExists()
     {
         var pastSlot = EntityFactory.MakeSlot(
-            start: DateTime.UtcNow.AddDays(-2),
-            end: DateTime.UtcNow.AddDays(-1));
+            start: new DateTime(2025, 5, 29, 8, 0, 0, DateTimeKind.Utc),
+            end: new DateTime(2025, 5, 31, 18, 0, 0, DateTimeKind.Utc));
         var booking = EntityFactory.MakeBooking(userId: UserId, slot: pastSlot);
         _bookingRepo.GetByIdAsync(1).Returns(booking);
 
@@ -90,8 +90,8 @@ public class CreateReviewHandlerTests
     public async Task Handle_WhenRatingInvalid_ReturnsInvalidRating()
     {
         var pastSlot = EntityFactory.MakeSlot(
-            start: DateTime.UtcNow.AddDays(-2),
-            end: DateTime.UtcNow.AddDays(-1));
+            start: new DateTime(2025, 5, 29, 8, 0, 0, DateTimeKind.Utc),
+            end: new DateTime(2025, 5, 31, 18, 0, 0, DateTimeKind.Utc));
         var booking = EntityFactory.MakeBooking(userId: UserId, slot: pastSlot);
         _bookingRepo.GetByIdAsync(1).Returns(booking);
         _reviewRepo.GetByReviewerIdAndWorkspaceIdAsync(UserId, Arg.Any<int>()).Returns((WorkTogetherly.Domain.Entities.Review?)null);
@@ -106,8 +106,8 @@ public class CreateReviewHandlerTests
     public async Task Handle_WhenValid_AddsReviewAndSaves()
     {
         var pastSlot = EntityFactory.MakeSlot(
-            start: DateTime.UtcNow.AddDays(-2),
-            end: DateTime.UtcNow.AddDays(-1));
+            start: new DateTime(2025, 5, 29, 8, 0, 0, DateTimeKind.Utc),
+            end: new DateTime(2025, 5, 31, 18, 0, 0, DateTimeKind.Utc));
         var booking = EntityFactory.MakeBooking(userId: UserId, slot: pastSlot);
         _bookingRepo.GetByIdAsync(1).Returns(booking);
         _reviewRepo.GetByReviewerIdAndWorkspaceIdAsync(UserId, Arg.Any<int>()).Returns((WorkTogetherly.Domain.Entities.Review?)null);

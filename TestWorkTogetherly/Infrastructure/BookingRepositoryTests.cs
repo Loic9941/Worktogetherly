@@ -134,7 +134,7 @@ public class BookingRepositoryTests : IClassFixture<ContainerSQL>
         _container._context.Workspaces.Add(workspace);
         await _container._context.SaveChangesAsync();
 
-        var material = Material.Create("Projecteur");
+        var material = Material.Create($"Projecteur_{Guid.NewGuid():N}");
         _container._context.Materials.Add(material);
         await _container._context.SaveChangesAsync();
 

@@ -49,13 +49,13 @@ public class CancelBookingHandlerTests
     [Fact]
     public async Task Handle_WhenArrivalTimePassed_ReturnsArrivalTimePassed()
     {
-        // Slot started in the past → arrival time already passed
+        // Slot started in the past relative to mocked clock (2025-06-01 12:00)
         var pastSlot = EntityFactory.MakeSlot(
-            start: DateTime.UtcNow.AddHours(-3),
-            end: DateTime.UtcNow.AddHours(-1));
+            start: new DateTime(2025, 6, 1, 9, 0, 0, DateTimeKind.Utc),
+            end: new DateTime(2025, 6, 1, 11, 0, 0, DateTimeKind.Utc));
         var booking = EntityFactory.MakeBooking(
             userId: UserId,
-            arrivalTime: new TimeOnly(DateTime.UtcNow.AddHours(-2).Hour, 0),
+            arrivalTime: new TimeOnly(10, 0),
             slot: pastSlot);
         _bookingRepo.GetByIdAsync(1).Returns(booking);
 

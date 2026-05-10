@@ -69,8 +69,8 @@ public class CancelSlotHandlerTests
     {
         var workspace = EntityFactory.MakeWorkspace(ownerId: UserId);
         var slot = EntityFactory.MakeSlot(
-            start: DateTime.UtcNow.AddHours(-1),
-            end: DateTime.UtcNow.AddHours(7),
+            start: new DateTime(2025, 6, 1, 11, 0, 0, DateTimeKind.Utc),
+            end: new DateTime(2025, 6, 1, 19, 0, 0, DateTimeKind.Utc),
             workspace: workspace);
         _slotRepo.GetByIdAsync(1).Returns(slot);
         _workspaceRepo.GetByIdAsync(1).Returns(workspace);

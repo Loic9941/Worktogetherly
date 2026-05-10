@@ -48,7 +48,9 @@ public class CreateBookingHandlerTests
     [Fact]
     public async Task Handle_WhenSlotInThePast_ReturnsInThePast()
     {
-        var pastSlot = EntityFactory.MakeSlot(start: DateTime.UtcNow.AddHours(-2), end: DateTime.UtcNow.AddHours(-1));
+        var pastSlot = EntityFactory.MakeSlot(
+            start: new DateTime(2025, 6, 1, 10, 0, 0, DateTimeKind.Utc),
+            end: new DateTime(2025, 6, 1, 11, 0, 0, DateTimeKind.Utc));
         _slotRepo.GetByIdAsync(1).Returns(pastSlot);
 
         var result = await _handler.Handle(MakeCommand(), default);

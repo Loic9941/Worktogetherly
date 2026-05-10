@@ -44,7 +44,7 @@ public class WorkspaceHandlerTests
     public async Task CreateWorkspace_WhenValid_AddsAndReturnsResult()
     {
         var workspace = EntityFactory.MakeWorkspace(ownerId: OwnerId);
-        _workspaceRepo.GetByIdAsync(workspace.Id, default).Returns(workspace);
+        _workspaceRepo.GetByIdAsync(Arg.Any<int>(), default).Returns(workspace);
         var handler = new CreateWorkspaceHandler(_workspaceRepo);
 
         var result = await handler.Handle(MakeCreateCommand(), default);

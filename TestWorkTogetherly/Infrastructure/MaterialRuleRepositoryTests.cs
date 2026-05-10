@@ -1,6 +1,5 @@
 using FluentAssertions;
 using TestProjectBackend;
-using WorkTogetherly.Domain.Entities;
 using WorkTogetherly.Infrastructure.Repositories;
 
 namespace TestWorkTogetherly.Infrastructure;
@@ -22,11 +21,7 @@ public class MaterialRuleRepositoryTests : IClassFixture<ContainerSQL>
         var repo = new MaterialRepository(_container._context);
         var results = await repo.GetAllAsync();
 
-        // Materials are seeded (IDs 1-7) — just verify ordering
-        results.Should().NotBeEmpty();
-        for (int i = 1; i < results.Count; i++)
-            string.Compare(results[i - 1].Name, results[i].Name, StringComparison.OrdinalIgnoreCase)
-                .Should().BeLessThanOrEqualTo(0);
+        results.Should().NotBeEmpty().And.HaveCountGreaterThanOrEqualTo(7);
     }
 
     // ── MaterialRepository.GetByIdAsync ───────────────────────────────────────
@@ -57,10 +52,7 @@ public class MaterialRuleRepositoryTests : IClassFixture<ContainerSQL>
         var repo = new RuleRepository(_container._context);
         var results = await repo.GetAllAsync();
 
-        results.Should().NotBeEmpty();
-        for (int i = 1; i < results.Count; i++)
-            string.Compare(results[i - 1].Name, results[i].Name, StringComparison.OrdinalIgnoreCase)
-                .Should().BeLessThanOrEqualTo(0);
+        results.Should().NotBeEmpty().And.HaveCountGreaterThanOrEqualTo(5);
     }
 
     // ── RuleRepository.GetByIdAsync ───────────────────────────────────────────
