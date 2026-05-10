@@ -46,13 +46,13 @@ dotnet ef migrations add <MigrationName> --project Infrastructure --startup-proj
 
 ### Backend API
 ```bash
-# Run the backend API (https://localhost:7053)
+# Run the backend API (https://worktogetherly-production.up.railway.app)
 dotnet run --project Presentation/WorkTogetherly.Presentation.csproj
 ```
 
 ### Web Frontend (Blazor WASM)
 ```bash
-# Run the standalone WASM app (https://localhost:50867)
+# Run the standalone WASM app (https://worktogetherly.be)
 dotnet run --project WorkTogetherly/WorkTogetherly.Web.Client/WorkTogetherly.Web.Client.csproj
 ```
 
@@ -106,7 +106,7 @@ Infrastructure → Application (implements interfaces)
 | `IFormFactor` | Returns `Mobile` / platform name | Returns `WebAssembly` |
 
 ### Authentication Flow
-1. `AuthService` calls backend at `https://localhost:7053/api/auth/*`
+1. `AuthService` calls backend at `https://worktogetherly-production.up.railway.app/api/auth/*`
 2. Tokens stored via `ITokenStorage` — access token in memory + sessionStorage, refresh token in localStorage
 3. `JwtAuthenticationStateProvider` parses JWT claims for Blazor auth state
 4. `AuthTokenHandler` auto-attaches Bearer token and retries on 401 with refresh
@@ -194,7 +194,7 @@ dotnet test TestWorkTogetherly/TestWorkTogetherly.csproj
 2. Start the database: `docker-compose up -d`
 3. Run the backend: `dotnet run --project Presentation/WorkTogetherly.Presentation.csproj`
 4. Run the web frontend: `dotnet run --project WorkTogetherly/WorkTogetherly.Web.Client/WorkTogetherly.Web.Client.csproj`
-5. Access the application at https://localhost:50867
+5. Access the application at https://worktogetherly.be
 
 ### Production
 
@@ -207,5 +207,5 @@ When `DATABASE_URL` is set, it takes precedence over the `DefaultConnection` in 
 ## Development Notes
 
 - CORS is open for development
-- OpenAPI/Swagger enabled at https://localhost:7053
+- OpenAPI/Swagger enabled at https://worktogetherly-production.up.railway.app
 - Password requirements: 8+ chars, uppercase, lowercase, digit

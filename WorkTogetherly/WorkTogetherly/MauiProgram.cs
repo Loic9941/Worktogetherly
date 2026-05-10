@@ -56,7 +56,7 @@ public static class MauiProgram
         builder.Services.AddScoped<NotificationHubService>();
 
         // HTTP clients
-        const string apiBaseUrl = "https://localhost:7053";
+        const string apiBaseUrl = "https://worktogetherly-production.up.railway.app";
         builder.Services.AddSingleton(new ApiSettings(apiBaseUrl));
 
         // Public client without auth
