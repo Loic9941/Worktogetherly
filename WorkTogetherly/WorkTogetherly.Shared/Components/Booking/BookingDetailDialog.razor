@@ -35,8 +35,7 @@
                                        AmPm="false"
                                        MinTime="TimeSpan.FromTicks(_booking.SlotStart.TimeOfDay.Ticks)"
                                        MaxTime="TimeSpan.FromTicks(_booking.SlotEnd.TimeOfDay.Ticks)"
-                                       Editable="true"
-                                       Style="max-width:160px;" />
+                                       Editable="true" />
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                    OnClick="SaveArrivalTimeAsync" Disabled="_saving">
                             Enregistrer
