@@ -47,9 +47,6 @@ else
                                    OnEditSlot="@(slot => OpenSlotDialogAsync(slot))"
                                    OnCancelSlot="@(slot => CancelSlotAsync(slot))" />
             </MudItem>
-            <MudItem xs="12" md="6">
-                <WorkspaceReviewList WorkspaceId="_workspace.Id" />
-            </MudItem>
         </MudGrid>
     </MudContainer>
 }
