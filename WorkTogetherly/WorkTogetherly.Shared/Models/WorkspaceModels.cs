@@ -92,7 +92,6 @@ namespace WorkTogetherly.Shared.Models
         double ApproxLongitude,
         double AverageRating,
         int ReviewCount,
-        bool IsOwner,
         List<WorkspaceMaterialDto> Materials,
         List<WorkspaceRuleDto> Rules,
         List<SlotDetailDto> Slots);
@@ -104,6 +103,5 @@ namespace WorkTogetherly.Shared.Models
         int Capacity,
         int AvailablePlaces,
         bool UserHasBooked,
-        bool IsInPast,
         List<SlotMaterialAvailabilityDto> MaterialAvailabilities);
 }

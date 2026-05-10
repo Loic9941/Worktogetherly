@@ -54,23 +54,46 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
         var workspaces = new List<Workspace>
         {
             // ── Braine-l'Alleud ──────────────────────────────────────────────────────
-            Workspace.Create(alice.Id,    "Le Bureau Vert",       "Espace de travail calme avec vue sur jardin",             "Rue de la Station 12, Braine-l'Alleud",          50.6851, 4.3835,  6,  true),
-            Workspace.Create(alice.Id,    "Studio Calme",         "Studio insonorisé idéal pour les appels vidéo",           "Avenue Reine Astrid 5, Braine-l'Alleud",         50.6920, 4.3730,  4,  true),
-            Workspace.Create(alice.Id,    "La Salle Lumineuse",   "Grande salle lumineuse pour équipes et ateliers",         "Chaussée de Waterloo 101, Braine-l'Alleud",      50.6790, 4.3940,  10, true),
-            Workspace.Create(emma.Id,     "Le Loft du Village",   "Loft industriel rénové, idéal pour workshops créatifs",   "Rue Sainte-Anne 8, Braine-l'Alleud",             50.6940, 4.3890,  8,  true),
-            Workspace.Create(francois.Id, "L'Espace Léon",        "Bureau privé dans maison de maître, jardin disponible",   "Rue Léon Castilhon 3, Braine-l'Alleud",          50.6790, 4.3700,  3,  true),
+            Workspace.Create(alice.Id,    "Le Bureau Vert",       "Espace de travail calme avec vue sur jardin",             "Rue de la Station 12, Braine-l'Alleud",          50.6851, 4.3835,  3,  true),
+            Workspace.Create(alice.Id,    "Studio Calme",         "Studio insonorisé idéal pour les appels vidéo",           "Avenue Reine Astrid 5, Braine-l'Alleud",         50.6920, 4.3730,  2,  true),
+            Workspace.Create(alice.Id,    "La Salle Lumineuse",   "Grande salle lumineuse pour équipes et ateliers",         "Chaussée de Waterloo 101, Braine-l'Alleud",      50.6790, 4.3940,  4,  true),
+            Workspace.Create(emma.Id,     "Le Loft du Village",   "Loft industriel rénové, idéal pour workshops créatifs",   "Rue Sainte-Anne 8, Braine-l'Alleud",             50.6940, 4.3890,  3,  true),
+            Workspace.Create(francois.Id, "L'Espace Léon",        "Bureau privé dans maison de maître, jardin disponible",   "Rue Léon Castilhon 3, Braine-l'Alleud",          50.6790, 4.3700,  2,  true),
 
             // ── Bruxelles & proche périphérie ────────────────────────────────────────
-            Workspace.Create(bob.Id,      "Cowork Central",       "Grand open space au cœur de Bruxelles",                   "Rue du Midi 44, Bruxelles",                      50.8463, 4.3521,  8,  true),
-            Workspace.Create(bob.Id,      "L'Atelier Partagé",    "Espace créatif avec salle de réunion modulable",          "Place de la Bourse 3, Bruxelles",                50.8530, 4.3360,  5,  true),
-            Workspace.Create(gaelle.Id,   "Hub Ixelles",          "Coworking moderne dans le quartier européen",             "Rue du Trône 60, Ixelles",                       50.8363, 4.3702,  7,  true),
-            Workspace.Create(gaelle.Id,   "Mezzanine Uccle",      "Espace calme au-dessus d'une librairie, vue sur parc",    "Chaussée de Waterloo 655, Uccle",                50.7992, 4.3601,  4,  true),
-            Workspace.Create(francois.Id, "Le Garage Créatif",    "Ancien garage converti en studio polyvalent",             "Rue Vanderkindere 210, Forest",                  50.8115, 4.3468,  6,  true),
+            Workspace.Create(bob.Id,      "Cowork Central",       "Grand open space au cœur de Bruxelles",                   "Rue du Midi 44, Bruxelles",                      50.8463, 4.3521,  4,  true),
+            Workspace.Create(bob.Id,      "L'Atelier Partagé",    "Espace créatif avec salle de réunion modulable",          "Place de la Bourse 3, Bruxelles",                50.8530, 4.3360,  3,  true),
+            Workspace.Create(gaelle.Id,   "Hub Ixelles",          "Coworking moderne dans le quartier européen",             "Rue du Trône 60, Ixelles",                       50.8363, 4.3702,  3,  true),
+            Workspace.Create(gaelle.Id,   "Mezzanine Uccle",      "Espace calme au-dessus d'une librairie, vue sur parc",    "Chaussée de Waterloo 655, Uccle",                50.7992, 4.3601,  2,  true),
+            Workspace.Create(francois.Id, "Le Garage Créatif",    "Ancien garage converti en studio polyvalent",             "Rue Vanderkindere 210, Forest",                  50.8115, 4.3468,  3,  true),
         };
 
         context.Workspaces.AddRange(workspaces);
         await context.SaveChangesAsync();
+
+        await SeedWorkspacePhotosAsync(workspaces);
+
         return workspaces;
+    }
+
+    private async Task SeedWorkspacePhotosAsync(List<Workspace> workspaces)
+    {
+        var seedDir = Path.Combine(AppContext.BaseDirectory, "wwwroot", "seed", "workspaces");
+        if (!Directory.Exists(seedDir)) return;
+
+        for (int i = 0; i < workspaces.Count; i++)
+        {
+            var src = Path.Combine(seedDir, $"ws{i}.jpg");
+            if (!File.Exists(src)) continue;
+
+            var ws = workspaces[i];
+            var destDir = Path.Combine(AppContext.BaseDirectory, "wwwroot", "uploads", "workspaces", ws.Id.ToString());
+            Directory.CreateDirectory(destDir);
+            File.Copy(src, Path.Combine(destDir, "photo.jpg"), overwrite: true);
+            ws.ReplacePhoto($"/uploads/workspaces/{ws.Id}/photo.jpg");
+        }
+
+        await context.SaveChangesAsync();
     }
 
     private void SeedWorkspaceMaterialsAndRules(List<Workspace> ws)

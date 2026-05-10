@@ -37,20 +37,27 @@ namespace WorkTogetherly.Application.Workspaces.GetWorkspaceDetails
 
             var workspaceMaterials = workspace.WorkspaceMaterials.ToList();
 
-            var slotResults = slotsForDate.Select(s =>
-            {
-                var availablePlaces = s.AvailablePlaces();
-                var userHasBooked = s.IsAlreadyBookedBy(request.UserId);
-                var isInPast = s.HasStarted(now);
-
-                var materialAvailabilities = workspaceMaterials.Select(wm =>
+            var slotResults = slotsForDate
+                .Select(s =>
                 {
-                    var available = s.AvailableMaterialQuantity(wm);
-                    return new MaterialAvailabilityResult(wm.MaterialId, wm.Material.Name, wm.Quantity, available);
-                }).ToList();
+                    var availablePlaces = s.AvailablePlaces();
+                    var userHasBooked = s.IsAlreadyBookedBy(request.UserId);
+                    var isInPast = s.HasStarted(now);
 
-                return new SlotDetailResult(s.Id, s.StartDateTime, s.EndDateTime, s.Capacity, availablePlaces, userHasBooked, isInPast, materialAvailabilities);
-            }).ToList();
+                    if (!userHasBooked && (isInPast || isOwner || availablePlaces == 0))
+                        return null;
+
+                    var materialAvailabilities = workspaceMaterials.Select(wm =>
+                    {
+                        var available = s.AvailableMaterialQuantity(wm);
+                        return new MaterialAvailabilityResult(wm.MaterialId, wm.Material.Name, wm.Quantity, available);
+                    }).ToList();
+
+                    return new SlotDetailResult(s.Id, s.StartDateTime, s.EndDateTime, s.Capacity, availablePlaces, userHasBooked, materialAvailabilities);
+                })
+                .Where(s => s is not null)
+                .Select(s => s!)
+                .ToList();
 
             var materials = workspace.WorkspaceMaterials
                 .Select(wm => new WorkspaceMaterialDetailResult(wm.MaterialId, wm.Material.Name, wm.Quantity))

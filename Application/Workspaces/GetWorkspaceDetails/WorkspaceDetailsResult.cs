@@ -26,6 +26,5 @@ namespace WorkTogetherly.Application.Workspaces.GetWorkspaceDetails
         int Capacity,
         int AvailablePlaces,
         bool UserHasBooked,
-        bool IsInPast,
         IReadOnlyList<MaterialAvailabilityResult> MaterialAvailabilities);
 }
