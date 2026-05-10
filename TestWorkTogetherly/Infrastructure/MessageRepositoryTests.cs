@@ -51,4 +51,85 @@ public class MessageRepositoryTests : IClassFixture<ContainerSQL>
         results[0].Content.Should().Be("Deuxième message");
         results[1].Content.Should().Be("Premier message");
     }
+
+    // ── GetByIdAsync ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetByIdAsync_WhenExists_ReturnsMessage()
+    {
+        var sender = CreateTestUser("Ida", "GetById");
+        var recipient = CreateTestUser("Jan", "GetById");
+        _container._context.Users.AddRange(sender, recipient);
+        await _container._context.SaveChangesAsync();
+
+        var message = Message.Create(sender.Id, recipient.Id, "Hello GetById");
+        _container._context.Messages.Add(message);
+        await _container._context.SaveChangesAsync();
+
+        var repo = new MessageRepository(_container._context);
+        var result = await repo.GetByIdAsync(message.Id);
+
+        result.Should().NotBeNull();
+        result!.Content.Should().Be("Hello GetById");
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WhenNotFound_ReturnsNull()
+    {
+        var repo = new MessageRepository(_container._context);
+        var result = await repo.GetByIdAsync(int.MaxValue);
+
+        result.Should().BeNull();
+    }
+
+    // ── GetBySenderIdAsync ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetBySenderIdAsync_WhenMessages_ReturnsThemOrderedByDateDesc()
+    {
+        var sender = CreateTestUser("Karl", "Sender");
+        var recipient = CreateTestUser("Lena", "Recipient");
+        _container._context.Users.AddRange(sender, recipient);
+        await _container._context.SaveChangesAsync();
+
+        var msg1 = Message.Create(sender.Id, recipient.Id, "Sender msg 1");
+        _container._context.Messages.Add(msg1);
+        await _container._context.SaveChangesAsync();
+
+        await Task.Delay(1);
+
+        var msg2 = Message.Create(sender.Id, recipient.Id, "Sender msg 2");
+        _container._context.Messages.Add(msg2);
+        await _container._context.SaveChangesAsync();
+
+        var repo = new MessageRepository(_container._context);
+        var results = await repo.GetBySenderIdAsync(sender.Id);
+
+        results.Should().HaveCountGreaterThanOrEqualTo(2);
+        results.Should().Contain(m => m.Content == "Sender msg 1");
+        results.Should().Contain(m => m.Content == "Sender msg 2");
+    }
+
+    // ── CountUnreadByRecipientIdAsync ─────────────────────────────────────────
+
+    [Fact]
+    public async Task CountUnreadByRecipientIdAsync_CountsOnlyUnread()
+    {
+        var sender = CreateTestUser("Mike", "Unread");
+        var recipient = CreateTestUser("Nina", "Unread");
+        _container._context.Users.AddRange(sender, recipient);
+        await _container._context.SaveChangesAsync();
+
+        var unread1 = Message.Create(sender.Id, recipient.Id, "Unread 1");
+        var unread2 = Message.Create(sender.Id, recipient.Id, "Unread 2");
+        var read = Message.Create(sender.Id, recipient.Id, "Read");
+        read.MarkAsRead();
+        _container._context.Messages.AddRange(unread1, unread2, read);
+        await _container._context.SaveChangesAsync();
+
+        var repo = new MessageRepository(_container._context);
+        var count = await repo.CountUnreadByRecipientIdAsync(recipient.Id);
+
+        count.Should().Be(2);
+    }
 }

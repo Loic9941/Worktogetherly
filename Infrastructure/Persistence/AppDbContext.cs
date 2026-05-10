@@ -16,7 +16,7 @@ public class AppDbContext : IdentityUserContext<User, Guid>
         _publisher = publisher;
     }
 
-    public DbSet<User> Users { get; set; } = null!;
+    public new DbSet<User> Users { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
     public DbSet<Workspace> Workspaces { get; set; } = null!;
     public DbSet<Material> Materials { get; set; } = null!;
