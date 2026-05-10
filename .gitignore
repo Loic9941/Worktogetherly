@@ -361,6 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-Presentation/Models/Review/UpdateReviewRequest.cs
 
 Presentation/wwwroot/
