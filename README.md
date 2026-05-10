@@ -46,7 +46,7 @@ dotnet ef migrations add <MigrationName> --project Infrastructure --startup-proj
 
 ### Backend API
 ```bash
-# Run the backend API (https://worktogetherly-production.up.railway.app)
+# Run the backend API (https://api.worktogetherly.be)
 dotnet run --project Presentation/WorkTogetherly.Presentation.csproj
 ```
 
@@ -106,7 +106,7 @@ Infrastructure → Application (implements interfaces)
 | `IFormFactor` | Returns `Mobile` / platform name | Returns `WebAssembly` |
 
 ### Authentication Flow
-1. `AuthService` calls backend at `https://worktogetherly-production.up.railway.app/api/auth/*`
+1. `AuthService` calls backend at `https://api.worktogetherly.be/api/auth/*`
 2. Tokens stored via `ITokenStorage` — access token in memory + sessionStorage, refresh token in localStorage
 3. `JwtAuthenticationStateProvider` parses JWT claims for Blazor auth state
 4. `AuthTokenHandler` auto-attaches Bearer token and retries on 401 with refresh
@@ -207,5 +207,5 @@ When `DATABASE_URL` is set, it takes precedence over the `DefaultConnection` in 
 ## Development Notes
 
 - CORS is open for development
-- OpenAPI/Swagger enabled at https://worktogetherly-production.up.railway.app
+- OpenAPI/Swagger enabled at https://api.worktogetherly.be
 - Password requirements: 8+ chars, uppercase, lowercase, digit
