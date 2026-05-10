@@ -37,15 +37,13 @@ else
                 <WorkspaceInfoCard Workspace="_workspace"
                                    OnEdit="OpenDialogAsync"
                                    OnWorkspaceUpdated="@(updated => _workspace = updated)" />
+                <WorkspaceReviewList WorkspaceId="_workspace.Id" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <WorkspaceSlotList Slots="_slots"
                                    OnAddSlot="@(() => OpenSlotDialogAsync())"
                                    OnEditSlot="@(slot => OpenSlotDialogAsync(slot))"
                                    OnCancelSlot="@(slot => CancelSlotAsync(slot))" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <WorkspaceReviewList WorkspaceId="_workspace.Id" />
             </MudItem>
         </MudGrid>
     </MudContainer>

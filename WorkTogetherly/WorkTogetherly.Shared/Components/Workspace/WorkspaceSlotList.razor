@@ -34,7 +34,7 @@
                 {
                     var hasStarted = slot.StartDateTime <= DateTime.UtcNow;
                     <MudItem xs="12" md="6">
-                        <MudPaper Elevation="1" Class="pa-4">
+                        <MudPaper Elevation="1" Class="pa-4" Style="height: 180px; display: flex; flex-direction: column; justify-content: space-between;">
                             <MudGrid Spacing="1">
                                 <MudItem xs="12">
                                     <MudText Typo="Typo.subtitle2">
@@ -62,7 +62,7 @@
                                                          Color="Color.Secondary"
                                                          Size="Size.Small"
                                                          Variant="Variant.Outlined">
-                                                    @attendee.FirstName @attendee.LastInitial.
+                                                    @attendee.FirstName @attendee.LastInitial. · @attendee.ArrivalTime.ToString("HH:mm")
                                                 </MudChip>
                                             }
                                         </MudChipSet>
