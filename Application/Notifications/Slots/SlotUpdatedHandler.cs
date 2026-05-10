@@ -20,8 +20,10 @@ internal sealed class SlotUpdatedHandler(
         if (slot?.Workspace is null)
             return;
 
+        // GetActiveBookerIds deduplicates in memory (one user could have multiple bookings on the same slot).
         var bookers = slot.GetActiveBookerIds();
 
+        // SaveChanges inside the loop so each message gets its own DB-generated id before the real-time push.
         foreach (var bookerId in bookers)
         {
             var content = $"Le créneau du {slot.StartDateTime:dd/MM/yyyy} ({slot.StartDateTime:HH\\:mm}–{slot.EndDateTime:HH\\:mm}) pour l'espace « {slot.Workspace.Name} » a été modifié.";

@@ -52,6 +52,8 @@ namespace WorkTogetherly.Infrastructure.Services.Auth
             if (user is null)
                 return Domain.Errors.UserErrors.NotFound;
 
+            // Revoke before generating the new pair: if anything fails after this point,
+            // the old token is already invalid so it can't be reused.
             token.Revoke();
 
             return await GenerateTokensAsync(user);

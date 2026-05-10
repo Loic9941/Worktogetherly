@@ -11,6 +11,7 @@ public abstract class AggregateRoot
     protected void RaiseDomainEvent(IDomainEvent domainEvent) =>
         _domainEvents.Add(domainEvent);
 
+    // Snapshot and clear in one step so each event is published exactly once.
     public IReadOnlyList<IDomainEvent> PopDomainEvents()
     {
         var events = _domainEvents.ToList();

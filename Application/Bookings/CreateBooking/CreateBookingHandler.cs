@@ -74,6 +74,8 @@ namespace WorkTogetherly.Application.Bookings.CreateBooking
             Slot slot, Domain.Entities.Workspace workspace,
             CreateBookingCommand request, CancellationToken cancellationToken)
         {
+            // Live DB count per material to catch concurrent bookings that the in-memory slot doesn't know about yet.
+            // count >= quantity means no unit is left (>= not > because quantity is the total, not the max index).
             foreach (var materialId in request.MaterialIds)
             {
                 var workspaceMaterial = workspace.WorkspaceMaterials.FirstOrDefault(wm => wm.MaterialId == materialId);

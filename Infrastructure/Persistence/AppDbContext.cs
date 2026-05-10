@@ -31,8 +31,11 @@ public class AppDbContext : IdentityUserContext<User, Guid>
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        // Collect before saving so no event raised during SaveChanges is missed.
         var domainEvents = CollectDomainEvents();
         var result = await base.SaveChangesAsync(cancellationToken);
+        // Publish after the commit so handlers can safely read the updated state from the DB.
+        // If a handler throws here, the DB changes are already committed — there is no outbox/retry.
         await PublishDomainEventsAsync(domainEvents, cancellationToken);
         return result;
     }
@@ -44,7 +47,6 @@ public class AppDbContext : IdentityUserContext<User, Guid>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 
-    // This method collects all domain events from the tracked entities that are of type AggregateRoot.
     private List<Domain.Events.IDomainEvent> CollectDomainEvents()
     {
         return ChangeTracker
@@ -53,7 +55,6 @@ public class AppDbContext : IdentityUserContext<User, Guid>
             .ToList();
     }
 
-    // This method publishes domain events after the changes have been saved to the database.
     private async Task PublishDomainEventsAsync(
         IEnumerable<Domain.Events.IDomainEvent> domainEvents,
         CancellationToken cancellationToken)

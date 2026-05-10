@@ -14,9 +14,11 @@ internal sealed class BookingCreatedHandler(
     IUserRepository userRepository,
     IEmailService emailService) : INotificationHandler<BookingCreatedEvent>
 {
+    // Triggered by AppDbContext after SaveChanges — the booking is already in the DB at this point.
     public async Task Handle(BookingCreatedEvent notification, CancellationToken cancellationToken)
     {
         var slot = await slotRepository.GetByIdAsync(notification.SlotId, cancellationToken);
+        // Slot or workspace could be gone if deleted between the booking and this handler — skip silently.
         if (slot?.Workspace is null)
             return;
 

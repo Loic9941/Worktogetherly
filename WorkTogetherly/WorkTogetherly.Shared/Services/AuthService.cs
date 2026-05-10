@@ -73,6 +73,8 @@ namespace WorkTogetherly.Shared.Services
             _authStateProvider.NotifyAuthenticationStateChanged();
         }
 
+        // SemaphoreSlim(1,1) so only one refresh call hits the backend at a time.
+        // Multiple 401 retries can arrive concurrently; the first one refreshes, the others just read the new token.
         private SemaphoreSlim _refreshLock = new(1, 1);
         private bool _isRefreshing = false;
 
@@ -89,6 +91,7 @@ namespace WorkTogetherly.Shared.Services
             await _refreshLock.WaitAsync();
             try
             {
+                // A concurrent call already refreshed the token — return whatever is in storage now.
                 if (_isRefreshing)
                     return !string.IsNullOrEmpty(_tokenStorage.GetAccessToken());
 
@@ -100,6 +103,7 @@ namespace WorkTogetherly.Shared.Services
                 }
                 catch (Exception)
                 {
+                    // Network error: keep the tokens intact so the user isn't logged out on a flaky connection.
                     return false;
                 }
 

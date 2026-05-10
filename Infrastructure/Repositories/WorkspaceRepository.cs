@@ -46,7 +46,8 @@ public class WorkspaceRepository : IWorkspaceRepository
         DateOnly date,
         CancellationToken cancellationToken = default)
     {
-        // Bounding box pre-filter in SQL (~1 degree lat = 111 km)
+        // Rough bounding box in SQL first: 1° lat ≈ 111 km everywhere; longitude degrees shrink toward the poles,
+        // so we divide by cos(lat) to compensate before hitting Haversine in memory.
         double latDelta = radiusKm / 111.0;
         double lngDelta = radiusKm / (111.0 * Math.Cos(latitude * Math.PI / 180.0));
 
@@ -63,7 +64,7 @@ public class WorkspaceRepository : IWorkspaceRepository
                     && s.Bookings.Count(b => b.CancelledAt == null) < s.Capacity))
             .ToListAsync(cancellationToken);
 
-        // Haversine refinement in memory
+        // The bounding box over-selects (corners extend beyond the radius), so filter precisely with Haversine in memory.
         return candidates
             .Where(w => HaversineKm(latitude, longitude, w.Latitude, w.Longitude) <= radiusKm)
             .OrderBy(w => HaversineKm(latitude, longitude, w.Latitude, w.Longitude))
@@ -72,7 +73,7 @@ public class WorkspaceRepository : IWorkspaceRepository
 
     private static double HaversineKm(double lat1, double lon1, double lat2, double lon2)
     {
-        const double R = 6371;
+        const double R = 6371; // Earth's mean radius in km
         var dLat = (lat2 - lat1) * Math.PI / 180;
         var dLon = (lon2 - lon1) * Math.PI / 180;
         var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)

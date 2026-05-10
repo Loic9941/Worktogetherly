@@ -23,6 +23,7 @@ namespace WorkTogetherly.Application.Common.Behaviors
                 .ToList();
 
             if (errors.Count != 0)
+                // ErrorOr<T> has an implicit conversion from List<Error>; dynamic is the only way to call it generically.
                 return (TResponse)(dynamic)errors;
 
             return await next();

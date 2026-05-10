@@ -25,6 +25,7 @@ public class Booking : AggregateRoot
 
     public static ErrorOr<Booking> Create(int slotId, Guid userId, TimeOnly arrivalTime, DateTime slotStart, DateTime slotEnd)
     {
+        // Rebuild a full DateTime from the slot's date + the TimeOnly so we can compare against slotStart/slotEnd.
         var arrivalDateTime = slotStart.Date + arrivalTime.ToTimeSpan();
         if (arrivalDateTime < slotStart || arrivalDateTime > slotEnd)
             return BookingErrors.ArrivalTimeOutOfRange;
@@ -67,6 +68,7 @@ public class Booking : AggregateRoot
     public bool HasArrivalTimePassed(DateTime now)
     {
         var arrivalDateTime = Slot.StartDateTime.Date + ArrivalTime.ToTimeSpan();
+        // <= so that hitting the exact arrival time also blocks edits (you're already there).
         return arrivalDateTime <= now;
     }
 

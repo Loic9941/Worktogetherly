@@ -15,6 +15,8 @@ public static class GeoCalculator
     }
 
     // Deterministic offset (~100m max) so exact coordinates never leave the server.
+    // Using the entity id (not random) means the same workspace always returns the same approximate position.
+    // Primes 127 and 251 spread the values evenly across the [-100, 100] range.
     public static (double Lat, double Lng) ApproximateCoords(int id, double lat, double lng) =>
         (lat + ((id * 127) % 200 - 100) / 100_000.0,
          lng + ((id * 251) % 200 - 100) / 100_000.0);
