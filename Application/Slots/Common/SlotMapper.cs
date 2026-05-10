@@ -13,7 +13,8 @@ namespace WorkTogetherly.Application.Slots.Common
                 .Where(b => b.User is not null)
                 .Select(b => new AttendeeResult(
                     b.User!.FirstName,
-                    b.User.LastName.Length > 0 ? b.User.LastName[0].ToString() : string.Empty))
+                    b.User.LastName.Length > 0 ? b.User.LastName[0].ToString() : string.Empty,
+                    b.ArrivalTime))
                 .ToList();
 
             return new SlotResult(

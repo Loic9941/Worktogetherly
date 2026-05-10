@@ -9,5 +9,5 @@ namespace WorkTogetherly.Application.Slots.Common
         int AvailablePlaces,
         IReadOnlyList<AttendeeResult> Attendees);
 
-    public record AttendeeResult(string FirstName, string LastInitial);
+    public record AttendeeResult(string FirstName, string LastInitial, TimeOnly ArrivalTime);
 }

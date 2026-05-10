@@ -36,11 +36,11 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
-    if (app.Environment.IsDevelopment())
-    {
+    //if (app.Environment.IsDevelopment())
+    //{
         var seeder = scope.ServiceProvider.GetRequiredService<WorkTogetherly.Infrastructure.Persistence.DatabaseSeeder>();
         await seeder.SeedAsync();
-    }
+    //}
 }
 
 // Configure the HTTP request pipeline.

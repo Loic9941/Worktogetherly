@@ -50,7 +50,7 @@ namespace WorkTogetherly.Shared.Models
         int AvailablePlaces,
         List<AttendeeDto> Attendees);
 
-    public record AttendeeDto(string FirstName, string LastInitial);
+    public record AttendeeDto(string FirstName, string LastInitial, TimeOnly ArrivalTime);
 
     public record CitySuggestion(string DisplayName, double Latitude, double Longitude);
 
