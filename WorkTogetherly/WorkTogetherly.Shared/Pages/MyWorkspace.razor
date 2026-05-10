@@ -37,6 +37,9 @@ else
                 <WorkspaceInfoCard Workspace="_workspace"
                                    OnEdit="OpenDialogAsync"
                                    OnWorkspaceUpdated="@(updated => _workspace = updated)" />
+                <div class="mt-4">
+                    <WorkspaceReviewList WorkspaceId="_workspace.Id" />
+                </div>
             </MudItem>
             <MudItem xs="12" md="6">
                 <WorkspaceSlotList Slots="_slots"
