@@ -15,6 +15,7 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
         SeedWorkspaceMaterialsAndRules(workspaces);
         var slotMap    = await SeedSlotsAsync(workspaces);
         await SeedBookingsAsync(slotMap, users);
+        await SeedDemoUserDataAsync(workspaces, slotMap, users);
     }
 
     private async Task<List<User>> SeedUsersAsync()
@@ -28,13 +29,17 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
             ("Emma",    "Lecomte",   "emma.lecomte@example.com"),
             ("François","Dubois",    "francois.dubois@example.com"),
             ("Gaëlle",  "Marchand",  "gaelle.marchand@example.com"),
+            // ── DEMO USER ─────────────────────────────────────────────────────────────
+            // Email : thomas.beaumont@example.com  /  Password : Demo1234!
+            ("Thomas",  "Beaumont",  "thomas.beaumont@example.com"),
         };
 
         var result = new List<User>();
         foreach (var (first, last, email) in definitions)
         {
             var user = User.Create(first, last, email);
-            var ir = await userManager.CreateAsync(user, "Seed1234");
+            var password = email == "thomas.beaumont@example.com" ? "Demo1234!" : "Seed1234";
+            var ir = await userManager.CreateAsync(user, password);
             if (!ir.Succeeded)
                 throw new InvalidOperationException(
                     $"Seed: failed to create user {email}: {string.Join(", ", ir.Errors.Select(e => e.Description))}");
@@ -50,6 +55,7 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
         var emma     = users[4];
         var francois = users[5];
         var gaelle   = users[6];
+        var thomas   = users[7];
 
         var workspaces = new List<Workspace>
         {
@@ -66,6 +72,9 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
             Workspace.Create(gaelle.Id,   "Hub Ixelles",          "Coworking moderne dans le quartier européen",             "Rue du Trône 60, Ixelles",                       50.8363, 4.3702,  3,  true),
             Workspace.Create(gaelle.Id,   "Mezzanine Uccle",      "Espace calme au-dessus d'une librairie, vue sur parc",    "Chaussée de Waterloo 655, Uccle",                50.7992, 4.3601,  2,  true),
             Workspace.Create(francois.Id, "Le Garage Créatif",    "Ancien garage converti en studio polyvalent",             "Rue Vanderkindere 210, Forest",                  50.8115, 4.3468,  3,  true),
+
+            // ── WS 10 — Thomas (DEMO USER) ───────────────────────────────────────────
+            Workspace.Create(thomas.Id,   "La Terrasse Beaumont", "Espace lumineux avec terrasse, idéal pour focus ou calls", "Rue Emile Vandervelde 7, Braine-l'Alleud",       50.6875, 4.3780,  4,  true),
         };
 
         context.Workspaces.AddRange(workspaces);
@@ -148,7 +157,13 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
             WorkspaceMaterial.Create(ws[9].Id, 1, 2),
             WorkspaceMaterial.Create(ws[9].Id, 3, 2),
             WorkspaceMaterial.Create(ws[9].Id, 4, 1),
-            WorkspaceMaterial.Create(ws[9].Id, 2, 1)
+            WorkspaceMaterial.Create(ws[9].Id, 2, 1),
+
+            // WS 10 — La Terrasse Beaumont (DEMO USER)
+            WorkspaceMaterial.Create(ws[10].Id, 1, 2),
+            WorkspaceMaterial.Create(ws[10].Id, 2, 2),
+            WorkspaceMaterial.Create(ws[10].Id, 3, 1),
+            WorkspaceMaterial.Create(ws[10].Id, 5, 1)
         );
 
         // Rules: 1=Non-fumeur 2=Animaux acceptés 3=Silence requis 4=Appels interdits 5=Nourriture autorisée
@@ -194,7 +209,11 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
 
             // WS 9 — Le Garage Créatif
             WorkspaceRule.Create(ws[9].Id, 2),
-            WorkspaceRule.Create(ws[9].Id, 5)
+            WorkspaceRule.Create(ws[9].Id, 5),
+
+            // WS 10 — La Terrasse Beaumont (DEMO USER)
+            WorkspaceRule.Create(ws[10].Id, 1),
+            WorkspaceRule.Create(ws[10].Id, 5)
         );
     }
 
@@ -285,5 +304,177 @@ public class DatabaseSeeder(AppDbContext context, UserManager<User> userManager)
         }
 
         await context.SaveChangesAsync();
+    }
+
+    // ── DEMO USER — Thomas Beaumont ───────────────────────────────────────────────
+    // Email : thomas.beaumont@example.com  /  Password : Demo1234!
+    //
+    // Scénario :
+    //   • Workspace "La Terrasse Beaumont" (ws[10]) avec des créneaux passés ET futurs
+    //   • Des réservations passées sur son workspace → des avis laissés dessus
+    //   • Des réservations de Thomas sur d'autres workspaces (passées + futures)
+    //   • Des avis laissés par Thomas sur ses réservations passées
+    // ─────────────────────────────────────────────────────────────────────────────
+    private async Task SeedDemoUserDataAsync(
+        List<Workspace> workspaces,
+        Dictionary<(int wsIdx, int day, string band), Slot> slotMap,
+        List<User> users)
+    {
+        var thomas   = users[7];
+        var alice    = users[0];
+        var celine   = users[2];
+        var david    = users[3];
+        var emma     = users[4];
+        var francois = users[5];
+        var wsThomas = workspaces[10]; // La Terrasse Beaumont
+
+        var today = DateTime.UtcNow.Date;
+
+        // ── 1. Slots passés sur le workspace de Thomas (3 jours, matin + après-midi)
+        var pastSlots = new List<(Slot slot, int dayOffset, string band)>();
+        foreach (var (offset, band, startH, endH) in new[]
+        {
+            (-3, "morning",   8, 12),
+            (-3, "afternoon", 13, 17),
+            (-2, "morning",   8, 12),
+            (-2, "afternoon", 13, 17),
+            (-1, "morning",   8, 12),
+            (-1, "afternoon", 13, 17),
+        })
+        {
+            var d = today.AddDays(offset);
+            var s = Slot.Create(wsThomas.Id, d.AddHours(startH), d.AddHours(endH), wsThomas.Capacity);
+            if (s.IsError) throw new InvalidOperationException(s.FirstError.Description);
+            pastSlots.Add((s.Value, offset, band));
+            context.Slots.Add(s.Value);
+        }
+        await context.SaveChangesAsync();
+
+        // ── 2. Réservations passées sur le workspace de Thomas (par d'autres users)
+        //       → on les crée, puis on leur attache des avis
+        var pastBookingDefs = new[]
+        {
+            (pastSlots[0].slot,  alice.Id,   new TimeOnly(8, 30),  5, "Super espace, très calme et bien équipé. Je recommande !"),
+            (pastSlots[1].slot,  celine.Id,  new TimeOnly(13, 15), 4, "Agréable, bonne lumière. Terrasse au top en été."),
+            (pastSlots[2].slot,  david.Id,   new TimeOnly(8, 0),   5, "Parfait pour une journée de focus. Connexion impeccable."),
+            (pastSlots[3].slot,  emma.Id,    new TimeOnly(13, 30), 4, "Très bonne expérience, hôte réactif. Reviendrai."),
+            (pastSlots[4].slot,  francois.Id,new TimeOnly(9, 0),   3, "Bien mais un peu bruyant l'après-midi côté rue."),
+            (pastSlots[5].slot,  celine.Id,  new TimeOnly(14, 0),  5, "Excellent rapport qualité-prix, espace propre et moderne."),
+        };
+
+        var pastBookingsOnThomas = new List<Booking>();
+        foreach (var (slot, userId, arrival, _, _) in pastBookingDefs)
+        {
+            var b = Booking.Create(slot.Id, userId, arrival, slot.StartDateTime, slot.EndDateTime);
+            if (b.IsError) throw new InvalidOperationException(b.FirstError.Description);
+            b.Value.PopDomainEvents();
+            context.Bookings.Add(b.Value);
+            pastBookingsOnThomas.Add(b.Value);
+        }
+        await context.SaveChangesAsync();
+
+        // ── 3. Avis sur le workspace de Thomas (un par réservation passée)
+        for (int i = 0; i < pastBookingDefs.Length; i++)
+        {
+            var (_, userId, _, rating, comment) = pastBookingDefs[i];
+            var booking = pastBookingsOnThomas[i];
+            var r = Review.Create(booking.Id, userId, wsThomas.Id, rating, comment);
+            if (r.IsError) throw new InvalidOperationException(r.FirstError.Description);
+            context.Reviews.Add(r.Value);
+        }
+        await context.SaveChangesAsync();
+
+        // ── 4. Réservations de Thomas sur d'autres workspaces (passées)
+        //       ws[5] = Cowork Central (Bob), ws[7] = Hub Ixelles (Gaelle)
+        //       On a besoin de créer des slots passés sur ces workspaces pour Thomas
+        var pastSlotsForThomas = new List<Slot>();
+        foreach (var (wsIdx, offset, startH, endH) in new[]
+        {
+            (5, -4, 8,  12),  // Cowork Central, il y a 4 jours, matin
+            (7, -2, 13, 17),  // Hub Ixelles, il y a 2 jours, après-midi
+            (6, -1, 8,  12),  // L'Atelier Partagé, hier, matin
+        })
+        {
+            var d = today.AddDays(offset);
+            var s = Slot.Create(workspaces[wsIdx].Id, d.AddHours(startH), d.AddHours(endH), workspaces[wsIdx].Capacity);
+            if (s.IsError) throw new InvalidOperationException(s.FirstError.Description);
+            pastSlotsForThomas.Add(s.Value);
+            context.Slots.Add(s.Value);
+        }
+        await context.SaveChangesAsync();
+
+        var thomasPastBookingDefs = new[]
+        {
+            (pastSlotsForThomas[0], thomas.Id, new TimeOnly(8, 30),  4, "Très bon open space, bien situé. Bonne ambiance."),
+            (pastSlotsForThomas[1], thomas.Id, new TimeOnly(13, 0),  5, "Hub moderne et bien équipé. Je n'y retournerai pas assez souvent !"),
+            (pastSlotsForThomas[2], thomas.Id, new TimeOnly(9, 15),  4, "Espace créatif sympa, connexion rapide. Recommande."),
+        };
+
+        var thomasPastBookings = new List<Booking>();
+        foreach (var (slot, userId, arrival, _, _) in thomasPastBookingDefs)
+        {
+            var b = Booking.Create(slot.Id, userId, arrival, slot.StartDateTime, slot.EndDateTime);
+            if (b.IsError) throw new InvalidOperationException(b.FirstError.Description);
+            b.Value.PopDomainEvents();
+            context.Bookings.Add(b.Value);
+            thomasPastBookings.Add(b.Value);
+        }
+        await context.SaveChangesAsync();
+
+        // ── 5. Avis laissés par Thomas sur ses réservations passées
+        for (int i = 0; i < thomasPastBookingDefs.Length; i++)
+        {
+            var (slot, _, _, rating, comment) = thomasPastBookingDefs[i];
+            var booking = thomasPastBookings[i];
+            var r = Review.Create(booking.Id, thomas.Id, slot.WorkspaceId, rating, comment);
+            if (r.IsError) throw new InvalidOperationException(r.FirstError.Description);
+            context.Reviews.Add(r.Value);
+        }
+        await context.SaveChangesAsync();
+
+        // ── 6. Réservations futures de Thomas sur d'autres workspaces
+        //       Réutilise les slots futurs déjà créés par SeedSlotsAsync (day 1..4)
+        var thomasFutureBookingDefs = new[]
+        {
+            (slotMap[(5, 3, "morning")],   thomas.Id, new TimeOnly(8, 45)),  // Cowork Central
+            (slotMap[(8, 2, "afternoon")], thomas.Id, new TimeOnly(13, 30)), // Mezzanine Uccle
+        };
+
+        foreach (var (slot, userId, arrival) in thomasFutureBookingDefs)
+        {
+            var b = Booking.Create(slot.Id, userId, arrival, slot.StartDateTime, slot.EndDateTime);
+            if (b.IsError) throw new InvalidOperationException(b.FirstError.Description);
+            b.Value.PopDomainEvents();
+            context.Bookings.Add(b.Value);
+        }
+
+        // ── 7. Réservations futures sur le workspace de Thomas (par d'autres users)
+        var thomasFutureSlotBookingDefs = new[]
+        {
+            (slotMap.TryGetValue((10, 1, "morning"), out var s1) ? s1 : null,   david.Id,  new TimeOnly(9, 0)),
+            (slotMap.TryGetValue((10, 2, "afternoon"), out var s2) ? s2 : null, emma.Id,   new TimeOnly(13, 15)),
+        };
+
+        foreach (var (slot, userId, arrival) in thomasFutureSlotBookingDefs)
+        {
+            if (slot is null) continue;
+            var b = Booking.Create(slot.Id, userId, arrival, slot.StartDateTime, slot.EndDateTime);
+            if (b.IsError) throw new InvalidOperationException(b.FirstError.Description);
+            b.Value.PopDomainEvents();
+            context.Bookings.Add(b.Value);
+        }
+
+        await context.SaveChangesAsync();
+
+        // ── 8. Photo de profil de Thomas (copie de ws0.jpg comme avatar)
+        var seedPhoto = Path.Combine(AppContext.BaseDirectory, "wwwroot", "seed", "workspaces", "ws0.jpg");
+        if (File.Exists(seedPhoto))
+        {
+            var destDir = Path.Combine(AppContext.BaseDirectory, "wwwroot", "uploads", "users", thomas.Id.ToString());
+            Directory.CreateDirectory(destDir);
+            File.Copy(seedPhoto, Path.Combine(destDir, "photo.jpg"), overwrite: true);
+            thomas.ReplacePhoto($"/uploads/users/{thomas.Id}/photo.jpg");
+            await context.SaveChangesAsync();
+        }
     }
 }
