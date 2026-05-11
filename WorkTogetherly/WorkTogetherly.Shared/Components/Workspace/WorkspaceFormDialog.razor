@@ -141,9 +141,7 @@
         </MudGrid>
     </DialogContent>
     <DialogActions>
-        <MudButton StartIcon="@Icons.Material.Filled.Close" OnClick="Cancel" Disabled="_isSubmitting">
-            <span class="d-none d-md-inline">Annuler</span>
-        </MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Close" OnClick="Cancel" Disabled="_isSubmitting">Annuler</MudButton>
         <MudButton Color="Color.Primary"
                    Variant="Variant.Filled"
                    OnClick="SubmitAsync"
@@ -153,7 +151,7 @@
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
             }
-            <span class="d-none d-md-inline">@(_isSubmitting ? "Enregistrement..." : "Enregistrer")</span>
+            @(_isSubmitting ? "Enregistrement..." : "Enregistrer")
         </MudButton>
     </DialogActions>
 </MudDialog>

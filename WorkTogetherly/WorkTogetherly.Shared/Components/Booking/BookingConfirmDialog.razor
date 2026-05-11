@@ -50,9 +50,7 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton StartIcon="@Icons.Material.Filled.Close" OnClick="Cancel" Disabled="_saving">
-            <span class="d-none d-md-inline">Annuler</span>
-        </MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Close" OnClick="Cancel" Disabled="_saving">Annuler</MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
                    StartIcon="@(_saving ? null : Icons.Material.Filled.Check)"
@@ -62,7 +60,7 @@
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
             }
-            <span class="d-none d-md-inline">Confirmer</span>
+            Confirmer
         </MudButton>
     </DialogActions>
 </MudDialog>

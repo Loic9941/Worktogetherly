@@ -76,13 +76,16 @@
                              Variant="Variant.Filled">
                         @(Workspace.IsActive ? "Actif" : "Inactif")
                     </MudChip>
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               Size="Size.Small"
-                               StartIcon="@Icons.Material.Filled.Edit"
-                               OnClick="OnEdit">
-                        <span class="d-none d-md-inline">Modifier</span>
-                    </MudButton>
+                    <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Edit" OnClick="OnEdit">
+                            Modifier
+                        </MudButton>
+                    </MudHidden>
+                    <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Variant="Variant.Filled"
+                                       Color="Color.Primary" Size="Size.Small" Title="Modifier" OnClick="OnEdit" />
+                    </MudHidden>
                 </MudItem>
             </MudGrid>
         </CardHeaderContent>
