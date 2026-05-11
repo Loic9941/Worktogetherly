@@ -37,12 +37,14 @@
                                        MaxTime="TimeSpan.FromTicks(_booking.SlotEnd.TimeOfDay.Ticks)"
                                        Editable="true" />
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Save"
                                    OnClick="SaveArrivalTimeAsync" Disabled="_saving">
-                            Enregistrer
+                            <span class="d-none d-md-inline">Enregistrer</span>
                         </MudButton>
                         <MudButton Variant="Variant.Text" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Close"
                                    OnClick="@(() => _editingArrivalTime = false)">
-                            Annuler
+                            <span class="d-none d-md-inline">Annuler</span>
                         </MudButton>
                     }
                     else
@@ -78,12 +80,12 @@
                         <MudRating ReadOnly="true" SelectedValue="_currentRating" MaxValue="5" Size="Size.Small" Color="Color.Warning" />
                         <MudText Typo="Typo.body2">Votre avis a été enregistré.</MudText>
                     </MudStack>
-                    <MudButton Variant="Variant.Outlined"
+                    <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Edit"
                                OnClick="OpenReviewDialogAsync">
-                        Modifier mon avis
+                        <span class="d-none d-md-inline">Modifier mon avis</span>
                     </MudButton>
                 }
                 else
@@ -94,7 +96,7 @@
                                Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Star"
                                OnClick="OpenReviewDialogAsync">
-                        Laisser un avis
+                        <span class="d-none d-md-inline">Laisser un avis</span>
                     </MudButton>
                 }
             }
@@ -104,14 +106,16 @@
         @if (_canModify)
         {
             <MudButton Color="Color.Error"
-                       Variant="Variant.Outlined"
+                       Variant="Variant.Filled"
                        StartIcon="@Icons.Material.Filled.Cancel"
                        OnClick="CancelBookingAsync"
                        Disabled="_saving">
-                Annuler la réservation
+                <span class="d-none d-md-inline">Annuler la réservation</span>
             </MudButton>
         }
-        <MudButton OnClick="Close">Fermer</MudButton>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Close" OnClick="Close">
+            <span class="d-none d-md-inline">Fermer</span>
+        </MudButton>
     </DialogActions>
 </MudDialog>
 

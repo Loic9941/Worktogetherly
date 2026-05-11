@@ -79,8 +79,9 @@
                     </MudCardContent>
                     <MudCardActions Class="pa-4">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving"
+                                   StartIcon="@Icons.Material.Filled.Save"
                                    Class="mud-full-width-sm">
-                            Enregistrer
+                            <span class="d-none d-md-inline">Enregistrer</span>
                         </MudButton>
                     </MudCardActions>
                 </MudCard>
@@ -96,8 +97,9 @@
                     </MudCardContent>
                     <MudCardActions Class="pa-4">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangePasswordAsync" Disabled="_changingPassword"
+                                   StartIcon="@Icons.Material.Filled.Lock"
                                    Class="mud-full-width-sm">
-                            Changer le mot de passe
+                            <span class="d-none d-md-inline">Changer le mot de passe</span>
                         </MudButton>
                     </MudCardActions>
                 </MudCard>
@@ -110,7 +112,7 @@
                    Class="mt-4"
                    FullWidth="true"
                    OnClick="LogoutAsync">
-            Se déconnecter
+            <span class="d-none d-md-inline">Se déconnecter</span>
         </MudButton>
     }
 </MudContainer>

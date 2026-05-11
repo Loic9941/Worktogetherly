@@ -76,12 +76,12 @@
                              Variant="Variant.Filled">
                         @(Workspace.IsActive ? "Actif" : "Inactif")
                     </MudChip>
-                    <MudButton Variant="Variant.Outlined"
+                    <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Edit"
                                OnClick="OnEdit">
-                        Modifier
+                        <span class="d-none d-md-inline">Modifier</span>
                     </MudButton>
                 </MudItem>
             </MudGrid>
