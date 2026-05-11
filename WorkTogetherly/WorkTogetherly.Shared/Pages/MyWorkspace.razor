@@ -15,13 +15,13 @@
 
 <PageTitle>Mon espace</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-6">
     <MudText Typo="Typo.h5" Class="mb-4 desktop-only-title">Mon espace</MudText>
 </MudContainer>
 
 @if (_loading)
 {
-    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 d-flex justify-center">
+    <MudContainer MaxWidth="MaxWidth.False" Class="mt-8 d-flex justify-center">
         <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
     </MudContainer>
 }
@@ -31,7 +31,7 @@ else if (_workspace is null)
 }
 else
 {
-    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
+    <MudContainer MaxWidth="MaxWidth.False" Class="mt-6">
         <MudGrid>
             <MudItem xs="12" md="6">
                 <WorkspaceInfoCard Workspace="_workspace"
