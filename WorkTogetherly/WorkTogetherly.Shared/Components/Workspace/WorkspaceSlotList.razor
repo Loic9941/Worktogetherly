@@ -9,12 +9,12 @@
                     <MudText Typo="Typo.h6">Mes prochains créneaux</MudText>
                 </MudItem>
                 <MudItem xs="12" sm="4" Class="d-flex align-center justify-sm-end">
-                    <MudButton Variant="Variant.Outlined"
+                    <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Add"
                                OnClick="@(() => OnAddSlot.InvokeAsync())">
-                        Ajouter
+                        <span class="d-none d-md-inline">Ajouter</span>
                     </MudButton>
                 </MudItem>
             </MudGrid>
@@ -70,13 +70,13 @@
                                 }
                                 <MudItem xs="12" Class="d-flex justify-end gap-1 mt-2">
                                     <MudTooltip Text="@(hasStarted ? "Le créneau a déjà commencé" : "")">
-                                        <MudButton Variant="Variant.Text"
+                                        <MudButton Variant="Variant.Filled"
                                                    Color="Color.Primary"
                                                    Size="Size.Small"
                                                    StartIcon="@Icons.Material.Filled.Edit"
                                                    Disabled="@hasStarted"
                                                    OnClick="@(() => OnEditSlot.InvokeAsync(slot))">
-                                            Modifier
+                                            <span class="d-none d-md-inline">Modifier</span>
                                         </MudButton>
                                     </MudTooltip>
                                     <MudTooltip Text="@(hasStarted ? "Le créneau a déjà commencé" : "")">
@@ -86,7 +86,7 @@
                                                    StartIcon="@Icons.Material.Filled.Cancel"
                                                    Disabled="@hasStarted"
                                                    OnClick="@(() => OnCancelSlot.InvokeAsync(slot))">
-                                            Annuler
+                                            <span class="d-none d-md-inline">Annuler</span>
                                         </MudButton>
                                     </MudTooltip>
                                 </MudItem>

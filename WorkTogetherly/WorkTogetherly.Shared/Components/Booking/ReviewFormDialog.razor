@@ -32,16 +32,19 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Disabled="_saving">Annuler</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Close" OnClick="Cancel" Disabled="_saving">
+            <span class="d-none d-md-inline">Annuler</span>
+        </MudButton>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
+                   StartIcon="@(_saving ? null : Icons.Material.Filled.Save)"
                    OnClick="SubmitAsync"
                    Disabled="_saving || _loading">
             @if (_saving)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
             }
-            Enregistrer
+            <span class="d-none d-md-inline">Enregistrer</span>
         </MudButton>
     </DialogActions>
 </MudDialog>

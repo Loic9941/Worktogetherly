@@ -104,8 +104,9 @@
                                 else
                                 {
                                     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.EventAvailable"
                                                OnClick="@(() => OpenBookingConfirmAsync(slot.Id, slot.StartDateTime, slot.EndDateTime, slot.MaterialAvailabilities))">
-                                        Réserver
+                                        <span class="d-none d-md-inline">Réserver</span>
                                     </MudButton>
                                 }
                             </MudStack>
@@ -116,7 +117,9 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Close" Variant="Variant.Outlined">Fermer</MudButton>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Close" OnClick="Close">
+            <span class="d-none d-md-inline">Fermer</span>
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
