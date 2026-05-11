@@ -78,16 +78,10 @@
                         <MudTextField Label="Nom" @bind-Value="_lastName" Class="mb-4" />
                     </MudCardContent>
                     <MudCardActions Class="pa-4">
-                        <MudHidden Breakpoint="Breakpoint.SmAndDown">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving"
-                                       StartIcon="@Icons.Material.Filled.Save" Class="mud-full-width-sm">
-                                Enregistrer
-                            </MudButton>
-                        </MudHidden>
-                        <MudHidden Breakpoint="Breakpoint.MdAndUp">
-                            <MudIconButton Icon="@Icons.Material.Filled.Save" Variant="Variant.Filled"
-                                           Color="Color.Primary" Title="Enregistrer" OnClick="SaveAsync" Disabled="_saving" />
-                        </MudHidden>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving"
+                                   StartIcon="@Icons.Material.Filled.Save" Class="mud-full-width-sm">
+                            Enregistrer
+                        </MudButton>
                     </MudCardActions>
                 </MudCard>
             </MudItem>
@@ -101,33 +95,20 @@
                         <MudTextField Label="Confirmer le nouveau mot de passe" @bind-Value="_confirmPassword" InputType="InputType.Password" Class="mb-4" />
                     </MudCardContent>
                     <MudCardActions Class="pa-4">
-                        <MudHidden Breakpoint="Breakpoint.SmAndDown">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangePasswordAsync" Disabled="_changingPassword"
-                                       StartIcon="@Icons.Material.Filled.Lock" Class="mud-full-width-sm">
-                                Changer le mot de passe
-                            </MudButton>
-                        </MudHidden>
-                        <MudHidden Breakpoint="Breakpoint.MdAndUp">
-                            <MudIconButton Icon="@Icons.Material.Filled.Lock" Variant="Variant.Filled"
-                                           Color="Color.Primary" Title="Changer le mot de passe"
-                                           OnClick="ChangePasswordAsync" Disabled="_changingPassword" />
-                        </MudHidden>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangePasswordAsync" Disabled="_changingPassword"
+                                   StartIcon="@Icons.Material.Filled.Lock" Class="mud-full-width-sm">
+                            Changer le mot de passe
+                        </MudButton>
                     </MudCardActions>
                 </MudCard>
             </MudItem>
         </MudGrid>
 
-        <MudHidden Breakpoint="Breakpoint.SmAndDown">
-            <MudButton Variant="Variant.Filled" Color="Color.Error"
-                       StartIcon="@Icons.Material.Filled.Logout"
-                       Class="mt-4" FullWidth="true" OnClick="LogoutAsync">
-                Se déconnecter
-            </MudButton>
-        </MudHidden>
-        <MudHidden Breakpoint="Breakpoint.MdAndUp">
-            <MudIconButton Icon="@Icons.Material.Filled.Logout" Variant="Variant.Filled"
-                           Color="Color.Error" Title="Se déconnecter" Class="mt-4" OnClick="LogoutAsync" />
-        </MudHidden>
+        <MudButton Variant="Variant.Filled" Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Logout"
+                   Class="mt-4" FullWidth="true" OnClick="LogoutAsync">
+            Se déconnecter
+        </MudButton>
     }
 </MudContainer>
 
