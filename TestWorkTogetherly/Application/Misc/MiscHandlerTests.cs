@@ -2,10 +2,12 @@
 using NSubstitute;
 using TestWorkTogetherly.Helpers;
 using WorkTogetherly.Application.Bookings.GetUserBookings;
+using WorkTogetherly.Application.Materials.GetAllMaterials;
 using WorkTogetherly.Application.Messages.GetUserMessages;
 using WorkTogetherly.Application.Messages.MarkMessageAsRead;
 using WorkTogetherly.Application.Reviews.GetReviewByBooking;
 using WorkTogetherly.Application.Reviews.GetWorkspaceReviews;
+using WorkTogetherly.Application.Rules.GetAllRules;
 using WorkTogetherly.Application.Slots.GetSlotsByWorkspace;
 using WorkTogetherly.Application.Slots.UpdateSlot;
 using WorkTogetherly.Application.Interfaces;
@@ -305,6 +307,52 @@ public class MiscHandlerTests
         result.IsError.Should().BeFalse();
         message.IsRead.Should().BeTrue();
         await _messageRepo.Received(1).SaveChangesAsync(default);
+    }
+
+    // ── GetAllMaterialsHandler ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAllMaterials_Handle_ReturnsMappedMaterialResults()
+    {
+        var materialRepo = Substitute.For<IMaterialRepository>();
+        var materials = new List<WorkTogetherly.Domain.Entities.Material>
+        {
+            EntityFactory.MakeMaterial(id: 1, name: "Projecteur"),
+            EntityFactory.MakeMaterial(id: 2, name: "Tableau blanc"),
+        };
+        materialRepo.GetAllAsync(default).Returns(materials);
+        var handler = new GetAllMaterialsHandler(materialRepo);
+
+        var result = await handler.Handle(new GetAllMaterialsQuery(), default);
+
+        result.Should().HaveCount(2);
+        result[0].Id.Should().Be(1);
+        result[0].Name.Should().Be("Projecteur");
+        result[1].Id.Should().Be(2);
+        result[1].Name.Should().Be("Tableau blanc");
+    }
+
+    // ── GetAllRulesHandler ────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAllRules_Handle_ReturnsMappedRuleResults()
+    {
+        var ruleRepo = Substitute.For<IRuleRepository>();
+        var rules = new List<WorkTogetherly.Domain.Entities.Rule>
+        {
+            EntityFactory.MakeRule(id: 1, name: "Pas de bruit"),
+            EntityFactory.MakeRule(id: 2, name: "Animaux interdits"),
+        };
+        ruleRepo.GetAllAsync(default).Returns(rules);
+        var handler = new GetAllRulesHandler(ruleRepo);
+
+        var result = await handler.Handle(new GetAllRulesQuery(), default);
+
+        result.Should().HaveCount(2);
+        result[0].Id.Should().Be(1);
+        result[0].Name.Should().Be("Pas de bruit");
+        result[1].Id.Should().Be(2);
+        result[1].Name.Should().Be("Animaux interdits");
     }
 }
 
